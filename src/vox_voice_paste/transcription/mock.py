@@ -18,6 +18,14 @@ class MockTranscriptionService:
         self._transcript = transcript
         self._delay_seconds = delay_seconds
 
+    @property
+    def transcript(self) -> str:
+        return self._transcript
+
+    @property
+    def delay_seconds(self) -> float:
+        return self._delay_seconds
+
     async def transcribe(
         self,
         audio_chunks: AsyncIterable[AudioChunk | bytes],

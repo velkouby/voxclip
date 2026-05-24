@@ -2,7 +2,7 @@
 
 Source : `specifications/vox_voice_paste_v1_spec_dev_plan.md`  
 Date de creation : 2026-05-23  
-Statut global : En cours - Phase D implementee, validations micro/OpenAI reelles restantes  
+Statut global : En cours - Phase E mock implementee, clipboard/notifications et validations reelles restantes  
 Environnement cible : Ubuntu desktop, priorite GNOME / Wayland  
 Environnement local observe : `uv 0.9.17`, `.venv` present, Python `3.14.2`, depot Git initialise
 
@@ -51,6 +51,7 @@ dependencies = [
     "numpy>=2.3",
     "platformdirs>=4.5",
     "pydantic>=2.12",
+    "PySide6>=6.10",
     "sounddevice>=0.5",
     "tomli-w>=1.2",
     "websockets>=15.0",
@@ -116,7 +117,7 @@ Priorites :
 Definition of done globale :
 
 - [x] La commande `uv run vox-voice-paste --help` fonctionne.
-- [ ] La commande `uv run vox-voice-paste --record-and-copy --mock` ouvre la fenetre et produit une transcription simulee.
+- [x] La commande `uv run vox-voice-paste --record-and-copy --mock` ouvre la fenetre et produit une transcription simulee.
 - [ ] La commande configuree dans Ubuntu est documentee : `vox-voice-paste --record-and-copy`.
 - [ ] Une dictee reelle courte copie le texte final dans le presse-papiers.
 - [ ] L'annulation ne modifie pas le presse-papiers.
@@ -227,7 +228,7 @@ Tracking :
 
 ### 7.1 Runtime
 
-- [ ] `PySide6` - interface desktop Qt.
+- [x] `PySide6` - interface desktop Qt.
 - [x] `sounddevice` - capture micro.
 - [x] `numpy` - traitement audio et RMS.
 - [x] `openai` ou `websockets` - client Realtime Transcription, a choisir apres prototype.
@@ -242,7 +243,7 @@ Tracking :
 ### 7.2 Developpement et tests
 
 - [x] `pytest`
-- [ ] `pytest-qt`
+- [x] `pytest-qt`
 - [ ] `pytest-asyncio`
 - [x] `ruff`
 - [ ] `mypy` ou `pyright` si le typage strict est retenu.
@@ -354,38 +355,38 @@ Critere d'acceptation :
 
 Objectif : fournir le flux utilisateur principal.
 
-- [ ] `E-001` `P0` Creer `RecorderWindow` PySide6.
-- [ ] `E-002` `P0` Ajouter bouton micro/stop principal.
-- [ ] `E-003` `P0` Ajouter indicateur d'etat.
-- [ ] `E-004` `P0` Ajouter barre de niveau audio.
-- [ ] `E-005` `P0` Ajouter selecteur micro.
-- [ ] `E-006` `P0` Ajouter zone transcription live.
-- [ ] `E-007` `P0` Ajouter action annuler.
-- [ ] `E-008` `P0` Gerer `Entree` pour arreter.
-- [ ] `E-009` `P0` Gerer `Echap` pour annuler.
-- [ ] `E-010` `P0` Connecter audio + transcription mock.
+- [x] `E-001` `P0` Creer `RecorderWindow` PySide6.
+- [x] `E-002` `P0` Ajouter bouton micro/stop principal.
+- [x] `E-003` `P0` Ajouter indicateur d'etat.
+- [x] `E-004` `P0` Ajouter barre de niveau audio.
+- [x] `E-005` `P0` Ajouter selecteur micro.
+- [x] `E-006` `P0` Ajouter zone transcription live.
+- [x] `E-007` `P0` Ajouter action annuler.
+- [x] `E-008` `P0` Gerer `Entree` pour arreter.
+- [x] `E-009` `P0` Gerer `Echap` pour annuler.
+- [x] `E-010` `P0` Connecter audio + transcription mock.
 - [ ] `E-011` `P0` Connecter audio + transcription reelle.
-- [ ] `E-012` `P0` Implementer state machine UI.
-- [ ] `E-013` `P1` Gerer fermeture forcee sans fuite de capture audio.
-- [ ] `E-014` `P1` Tester avec `pytest-qt`.
+- [x] `E-012` `P0` Implementer state machine UI.
+- [x] `E-013` `P1` Gerer fermeture forcee sans fuite de capture audio.
+- [x] `E-014` `P1` Tester avec `pytest-qt`.
 
 Etats UI a couvrir :
 
-- [ ] `idle`
-- [ ] `recording`
-- [ ] `stopping`
-- [ ] `transcribing_final`
+- [x] `idle`
+- [x] `recording`
+- [x] `stopping`
+- [x] `transcribing_final`
 - [ ] `copying`
-- [ ] `success`
-- [ ] `error`
-- [ ] `cancelled`
+- [x] `success`
+- [x] `error`
+- [x] `cancelled`
 
 Critere d'acceptation :
 
-- [ ] `uv run vox-voice-paste --record-and-copy --mock` ouvre la fenetre.
-- [ ] Le bouton principal arrete correctement.
-- [ ] `Echap` annule sans copier.
-- [ ] Une erreur reste visible et lisible.
+- [x] `uv run vox-voice-paste --record-and-copy --mock` ouvre la fenetre.
+- [x] Le bouton principal arrete correctement.
+- [x] `Echap` annule sans copier.
+- [x] Une erreur reste visible et lisible.
 
 ### Phase F - Clipboard et notifications
 
@@ -547,15 +548,15 @@ Critere d'acceptation release :
 
 ### Epic UI
 
-- [ ] `UI-001` `P0` Fenetre de dictee.
-- [ ] `UI-002` `P0` Bouton micro/stop.
-- [ ] `UI-003` `P0` Barre niveau sonore.
-- [ ] `UI-004` `P0` Selecteur micro.
-- [ ] `UI-005` `P0` Zone transcription live.
-- [ ] `UI-006` `P0` Etat et messages.
-- [ ] `UI-007` `P0` Raccourcis internes.
-- [ ] `UI-008` `P0` Fermeture automatique sur succes.
-- [ ] `UI-009` `P1` Affichage erreur avec texte partiel.
+- [x] `UI-001` `P0` Fenetre de dictee.
+- [x] `UI-002` `P0` Bouton micro/stop.
+- [x] `UI-003` `P0` Barre niveau sonore.
+- [x] `UI-004` `P0` Selecteur micro.
+- [x] `UI-005` `P0` Zone transcription live.
+- [x] `UI-006` `P0` Etat et messages.
+- [x] `UI-007` `P0` Raccourcis internes.
+- [x] `UI-008` `P0` Fermeture automatique sur succes.
+- [x] `UI-009` `P1` Affichage erreur avec texte partiel.
 
 ### Epic Desktop
 
@@ -609,7 +610,7 @@ Critere d'acceptation release :
 
 - [ ] Transcription mock complete.
 - [ ] Source audio factice vers transcription mock.
-- [ ] Fenetre UI avec `pytest-qt`.
+- [x] Fenetre UI avec `pytest-qt`.
 - [ ] Clipboard fake.
 - [ ] Notifications fake.
 - [ ] Erreur OpenAI simulee.

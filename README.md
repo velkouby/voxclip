@@ -15,6 +15,7 @@ Install and run through `uv`:
 ```bash
 uv sync --all-extras --dev
 uv run vox-voice-paste --help
+uv run vox-voice-paste --record-and-copy --mock
 uv run vox-voice-paste --diagnose
 uv run vox-voice-paste --check-openai-key
 uv run vox-voice-paste --set-openai-key
@@ -37,6 +38,12 @@ runtime before listing or capturing real microphones:
 
 ```bash
 sudo apt install libportaudio2
+```
+
+For headless UI checks, use Qt offscreen:
+
+```bash
+QT_QPA_PLATFORM=offscreen uv run vox-voice-paste --record-and-copy --mock
 ```
 
 ## Product Constraints

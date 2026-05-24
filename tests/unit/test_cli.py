@@ -68,3 +68,11 @@ def test_list_audio_devices_prints_devices(monkeypatch, capsys) -> None:
     captured = capsys.readouterr()
     assert exit_code == 0
     assert "Internal Mic" in captured.out
+
+
+def test_record_and_copy_mock_runs_app(monkeypatch) -> None:
+    import vox_voice_paste.app
+
+    monkeypatch.setattr(vox_voice_paste.app, "run_record_and_copy", lambda *, mock: 23)
+
+    assert main(["--record-and-copy", "--mock"]) == 23
