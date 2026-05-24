@@ -33,3 +33,4 @@ def test_invalid_config_raises_config_error(tmp_path) -> None:
 
     with pytest.raises(ConfigError):
         load_config(config_path)
+

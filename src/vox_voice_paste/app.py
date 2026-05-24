@@ -61,6 +61,7 @@ def run_record_and_copy(
                 input_devices=devices,
                 auto_start=True,
                 close_on_success=True,
+                force_process_exit_on_success=True,
             )
             window.show()
             return int(app.exec())

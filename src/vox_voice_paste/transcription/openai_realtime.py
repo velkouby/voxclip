@@ -16,6 +16,7 @@ from .base import TranscriptionConfig, TranscriptionEvent, TranscriptionEventTyp
 
 DELTA_EVENT = "conversation.item.input_audio_transcription.delta"
 COMPLETED_EVENT = "conversation.item.input_audio_transcription.completed"
+FAILED_EVENT = "conversation.item.input_audio_transcription.failed"
 ERROR_EVENT = "error"
 
 
@@ -137,6 +138,12 @@ def parse_realtime_event(raw_event: dict[str, Any]) -> TranscriptionEvent | None
         return TranscriptionEvent.final(
             str(raw_event.get("transcript") or ""),
             item_id=_optional_str(raw_event.get("item_id")),
+        )
+    if event_type == FAILED_EVENT:
+        error = raw_event.get("error") or {}
+        message = error.get("message") if isinstance(error, dict) else None
+        return TranscriptionEvent.error_event(
+            str(message or "OpenAI realtime transcription failed.")
         )
     if event_type == ERROR_EVENT:
         error = raw_event.get("error") or {}

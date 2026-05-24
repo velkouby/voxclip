@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import asyncio
+
 from PySide6.QtCore import Qt
 
 from vox_voice_paste.audio import AudioChunk, AudioInputDevice
@@ -38,6 +40,45 @@ def test_recorder_window_mock_transcription_reaches_success(qtbot) -> None:
     assert window.transcript_edit.toPlainText() == "bonjour monde"
     assert clipboard.text == "bonjour monde"
     assert notifications.notifications[-1].body == "Texte copie. Faites Ctrl+V pour coller."
+
+
+def test_recorder_window_closes_on_success_when_requested(qtbot) -> None:
+    window = RecorderWindow(
+        transcription_service=MockTranscriptionService("bonjour monde", delay_seconds=0),
+        clipboard_service=InMemoryClipboardService(),
+        notification_service=InMemoryNotificationService(),
+        auto_start=True,
+        close_on_success=True,
+    )
+    qtbot.addWidget(window)
+
+    with qtbot.waitSignal(window.finished, timeout=2000):
+        window.show()
+
+    assert window.state is RecorderState.SUCCESS
+    assert not window.isVisible()
+
+
+def test_recorder_window_stop_button_closes_real_service_on_success(qtbot) -> None:
+    clipboard = InMemoryClipboardService()
+    window = RecorderWindow(
+        transcription_service=StopAwareTranscriptionService(),
+        audio_source_factory=stop_controlled_audio_source,
+        clipboard_service=clipboard,
+        notification_service=InMemoryNotificationService(),
+        auto_start=True,
+        close_on_success=True,
+    )
+    qtbot.addWidget(window)
+    window.show()
+    qtbot.waitUntil(lambda: window.state is RecorderState.RECORDING, timeout=1000)
+
+    with qtbot.waitSignal(window.finished, timeout=3000):
+        qtbot.mouseClick(window.primary_button, Qt.MouseButton.LeftButton)
+
+    assert clipboard.text == "bonjour monde"
+    assert window.state is RecorderState.SUCCESS
+    assert not window.isVisible()
 
 
 def test_recorder_window_enter_stops_recording(qtbot) -> None:
@@ -165,6 +206,20 @@ class EchoTranscriptionService:
         yield TranscriptionEvent.final("bonjour monde", item_id="real")
 
 
+class StopAwareTranscriptionService:
+    async def transcribe(self, audio_chunks):
+        async for _ in audio_chunks:
+            pass
+        yield TranscriptionEvent.final("bonjour monde", item_id="real")
+
+
 async def fake_audio_source(device_id, stop_requested, cancel_requested):
     del device_id, stop_requested, cancel_requested
     yield AudioChunk(pcm=b"abc", rms=0.5)
+
+
+async def stop_controlled_audio_source(device_id, stop_requested, cancel_requested):
+    del device_id
+    while not stop_requested.is_set() and not cancel_requested.is_set():
+        yield AudioChunk(pcm=b"abc", rms=0.5)
+        await asyncio.sleep(0.01)

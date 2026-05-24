@@ -8,6 +8,7 @@ from enum import StrEnum
 from PySide6.QtCore import QObject, Qt, QTimer, Signal, Slot
 from PySide6.QtGui import QCloseEvent, QKeyEvent, QTextCursor
 from PySide6.QtWidgets import (
+    QApplication,
     QComboBox,
     QDialog,
     QHBoxLayout,
@@ -91,6 +92,9 @@ class ThreadedTranscriptionRunner(QObject):
         if self._thread.is_alive():
             self._thread.join(timeout)
 
+    def is_running(self) -> bool:
+        return self._thread.is_alive()
+
     def _run(self) -> None:
         try:
             asyncio.run(self._run_async())
@@ -124,6 +128,7 @@ class RecorderWindow(QDialog):
         notification_service: NotificationService | None = None,
         auto_start: bool = False,
         close_on_success: bool = False,
+        force_process_exit_on_success: bool = False,
         parent: QWidget | None = None,
     ) -> None:
         super().__init__(parent)
@@ -133,12 +138,14 @@ class RecorderWindow(QDialog):
         self._clipboard = clipboard_service or SystemClipboardService()
         self._notifications = notification_service or DesktopNotificationService()
         self._close_on_success = close_on_success
+        self._force_process_exit_on_success = force_process_exit_on_success
         self._buffer = TranscriptBuffer()
         self._state = RecorderState.IDLE
         self._level_value = 0
         self._mock_words: list[str] = []
         self._mock_word_index = 0
         self._runner: ThreadedTranscriptionRunner | None = None
+        self._finish_after_runner_stops = False
 
         self._build_ui()
         self._level_timer = QTimer(self)
@@ -248,10 +255,14 @@ class RecorderWindow(QDialog):
             audio_source_factory=self._audio_source_factory,
             device_id=self.device_combo.currentData(),
         )
-        self._runner.event_received.connect(self._handle_transcription_event)
-        self._runner.level_received.connect(self._set_level)
-        self._runner.failed.connect(self._handle_error)
-        self._runner.finished.connect(self._runner_finished)
+        connection_type = Qt.ConnectionType.QueuedConnection
+        self._runner.event_received.connect(
+            self._handle_transcription_event,
+            connection_type,
+        )
+        self._runner.level_received.connect(self._set_level, connection_type)
+        self._runner.failed.connect(self._handle_error, connection_type)
+        self._runner.finished.connect(self._runner_finished, connection_type)
         self._runner.start()
 
     @Slot()
@@ -300,6 +311,9 @@ class RecorderWindow(QDialog):
         self._level_timer.stop()
         self.set_state(RecorderState.ERROR)
         self.status_label.setText(message)
+        if self._close_on_success:
+            self.show()
+            self.raise_()
 
     def _copy_final_text(self, text: str) -> None:
         self.set_state(RecorderState.COPYING)
@@ -315,7 +329,7 @@ class RecorderWindow(QDialog):
         )
         self.set_state(RecorderState.SUCCESS)
         if self._close_on_success:
-            QTimer.singleShot(250, self.close)
+            QTimer.singleShot(0, self._finish_after_success)
 
     @Slot()
     def _mark_transcribing_final(self) -> None:
@@ -325,6 +339,26 @@ class RecorderWindow(QDialog):
     @Slot()
     def _runner_finished(self) -> None:
         self._runner = None
+        if self._finish_after_runner_stops:
+            self._quit_after_success()
+
+    @Slot()
+    def _finish_after_success(self) -> None:
+        if self._state is RecorderState.SUCCESS:
+            self.hide()
+            if self._runner is not None and self._runner.is_running():
+                self._runner.cancel()
+                self._runner.join(timeout=0.3)
+            self._quit_after_success()
+
+    def _quit_after_success(self) -> None:
+        self._finish_after_runner_stops = False
+        self._mock_timer.stop()
+        self._level_timer.stop()
+        self.done(QDialog.DialogCode.Accepted)
+        app = QApplication.instance()
+        if app is not None:
+            app.quit()
 
     @Slot(float)
     def _set_level(self, level: float) -> None:

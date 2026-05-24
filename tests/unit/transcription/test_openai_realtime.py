@@ -79,6 +79,19 @@ def test_parse_realtime_error_event() -> None:
     assert event.error == "bad request"
 
 
+def test_parse_realtime_transcription_failed_event() -> None:
+    event = parse_realtime_event(
+        {
+            "type": "conversation.item.input_audio_transcription.failed",
+            "error": {"message": "invalid transcription model"},
+        }
+    )
+
+    assert event is not None
+    assert event.type is TranscriptionEventType.ERROR
+    assert event.error == "invalid transcription model"
+
+
 def test_send_audio_appends_base64_and_commits() -> None:
     async def chunks() -> AsyncIterator[bytes]:
         yield b"abc"

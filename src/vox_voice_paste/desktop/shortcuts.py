@@ -41,19 +41,7 @@ def set_ubuntu_shortcut(
     normalized = _normalize_shortcut(shortcut)
     paths = _load_custom_binding_paths()
 
-    existing_paths_for_command = [
-        path
-        for path in paths
-        if _read_schema_value(f"{CUSTOM_KEY_SCHEMA_PREFIX}:{path}", "command") == command
-    ]
-
-    target_path = managed_path if managed_path in paths else None
-    if target_path is None:
-        target_path = existing_paths_for_command[0] if existing_paths_for_command else None
-
-    if target_path is None:
-        target_path = _first_available_custom_path(paths)
-
+    target_path = managed_path
     if target_path not in paths:
         paths.append(target_path)
 
@@ -62,8 +50,12 @@ def set_ubuntu_shortcut(
         for path in paths
         if path != target_path
         and (
-            _read_schema_value(f"{CUSTOM_KEY_SCHEMA_PREFIX}:{path}", "command") == command
+            _read_schema_value(f"{CUSTOM_KEY_SCHEMA_PREFIX}:{path}", "command")
+            == command
             or _read_schema_value(f"{CUSTOM_KEY_SCHEMA_PREFIX}:{path}", "name") == label
+            or _read_schema_value(f"{CUSTOM_KEY_SCHEMA_PREFIX}:{path}", "binding")
+            == normalized
+            or _is_empty_binding(f"{CUSTOM_KEY_SCHEMA_PREFIX}:{path}")
         )
     ]
 
@@ -73,6 +65,8 @@ def set_ubuntu_shortcut(
     if remove_stale:
         paths = [path for path in paths if path not in stale_paths]
 
+    paths = [path for path in paths if path != target_path]
+    paths.insert(0, target_path)
     paths = _dedupe_paths(paths)
     _set_gsettings_value(
         GSETTINGS_SCHEMA,
@@ -304,3 +298,11 @@ def _dedupe_paths(paths: list[str]) -> list[str]:
         seen.add(path)
         deduped.append(path)
     return deduped
+
+
+def _is_empty_binding(schema: str) -> bool:
+    return (
+        not _read_schema_value(schema, "name")
+        and not _read_schema_value(schema, "command")
+        and not _read_schema_value(schema, "binding")
+    )
