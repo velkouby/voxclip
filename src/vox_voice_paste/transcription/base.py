@@ -44,6 +44,7 @@ class TranscriptionConfig:
     sample_rate: int = TARGET_SAMPLE_RATE
     connect_timeout_seconds: float = 10.0
     final_timeout_seconds: float = 20.0
+    close_timeout_seconds: float = 1.0
     websocket_base_url: str = "wss://api.openai.com/v1/realtime"
 
 

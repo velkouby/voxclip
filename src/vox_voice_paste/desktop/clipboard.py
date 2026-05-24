@@ -52,6 +52,12 @@ def clipboard_command(environ: Mapping[str, str]) -> list[str] | None:
 
 
 def copy_with_command(command: list[str], text: str) -> None:
+    # `wl-copy` and `xclip` double-fork a daemon that keeps the selection
+    # alive after the foreground process exits. The daemon inherits stdout
+    # and stderr; piping them keeps the read end open forever and makes
+    # `subprocess.run` block until the timeout fires even though the
+    # clipboard was set correctly. Redirect to DEVNULL so we wait only on
+    # the foreground process.
     try:
         subprocess.run(
             command,
@@ -59,7 +65,9 @@ def copy_with_command(command: list[str], text: str) -> None:
             text=True,
             check=True,
             timeout=3,
-            capture_output=True,
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL,
+            start_new_session=True,
         )
     except (OSError, subprocess.CalledProcessError, subprocess.TimeoutExpired) as exc:
         raise ClipboardError("Unable to copy text to the system clipboard.") from exc

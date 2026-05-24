@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 import asyncio
+import contextlib
+import logging
 import threading
 from collections.abc import AsyncIterator, Callable
 from enum import StrEnum
@@ -39,6 +41,12 @@ from vox_voice_paste.transcription import (
 
 from .widgets import create_level_meter
 
+_logger = logging.getLogger(__name__)
+
+FORCE_QUIT_AFTER_SUCCESS_MS = 1500
+RUNNER_JOIN_TIMEOUT_SECONDS = 1.0
+POST_STOP_DEADLINE_MS = 5000
+
 
 class RecorderState(StrEnum):
     IDLE = "idle"
@@ -76,7 +84,14 @@ class ThreadedTranscriptionRunner(QObject):
         self._device_id = device_id
         self._stop_requested = threading.Event()
         self._cancel_requested = threading.Event()
-        self._thread = threading.Thread(target=self._run, daemon=True)
+        self._loop_lock = threading.Lock()
+        self._loop: asyncio.AbstractEventLoop | None = None
+        self._main_task: asyncio.Task | None = None
+        self._thread = threading.Thread(
+            target=self._run,
+            daemon=True,
+            name="VoxTranscriptionRunner",
+        )
 
     def start(self) -> None:
         self._thread.start()
@@ -87,6 +102,19 @@ class ThreadedTranscriptionRunner(QObject):
     def cancel(self) -> None:
         self._cancel_requested.set()
         self._stop_requested.set()
+        self._abort_async_task()
+
+    def _abort_async_task(self) -> None:
+        with self._loop_lock:
+            loop = self._loop
+            task = self._main_task
+        if loop is None or task is None or loop.is_closed():
+            return
+        try:
+            loop.call_soon_threadsafe(task.cancel)
+        except RuntimeError:
+            # Loop already closed between the check and the call.
+            pass
 
     def join(self, timeout: float = 1.0) -> None:
         if self._thread.is_alive():
@@ -98,23 +126,47 @@ class ThreadedTranscriptionRunner(QObject):
     def _run(self) -> None:
         try:
             asyncio.run(self._run_async())
+        except asyncio.CancelledError:
+            pass
         except Exception as exc:
             if not self._cancel_requested.is_set():
                 self.failed.emit(str(exc) or "Transcription failed.")
         finally:
+            with self._loop_lock:
+                self._loop = None
+                self._main_task = None
             self.finished.emit()
 
     async def _run_async(self) -> None:
+        with self._loop_lock:
+            self._loop = asyncio.get_running_loop()
+            self._main_task = asyncio.current_task()
+        if self._cancel_requested.is_set():
+            return
         source = self._audio_source_factory(
             self._device_id,
             self._stop_requested,
             self._cancel_requested,
         )
         audio_chunks = _with_level_signal(source, self.level_received)
-        async for event in self._service.transcribe(audio_chunks):
-            if self._cancel_requested.is_set():
-                return
-            self.event_received.emit(event)
+        try:
+            async for event in self._service.transcribe(audio_chunks):
+                if self._cancel_requested.is_set():
+                    return
+                self.event_received.emit(event)
+        finally:
+            # Ensure the audio generator chain is closed even if the service
+            # exited early or was cancelled, so MicrophoneCapture stops the
+            # sounddevice stream before the worker thread exits.
+            await _safe_aclose(audio_chunks)
+
+
+async def _safe_aclose(aiterator: AsyncIterator) -> None:
+    aclose = getattr(aiterator, "aclose", None)
+    if aclose is None:
+        return
+    with contextlib.suppress(Exception):
+        await aclose()
 
 
 class RecorderWindow(QDialog):
@@ -273,6 +325,11 @@ class RecorderWindow(QDialog):
         if self._runner is not None:
             self._runner.stop()
         QTimer.singleShot(120, self._mark_transcribing_final)
+        if self._close_on_success:
+            # Hard deadline: if FINAL never arrives the window must still
+            # close so the SessionLock is released and Ctrl+Alt+N can start
+            # a fresh dictation immediately.
+            QTimer.singleShot(POST_STOP_DEADLINE_MS, self._enforce_post_stop_deadline)
 
     @Slot()
     def cancel(self) -> None:
@@ -312,8 +369,9 @@ class RecorderWindow(QDialog):
         self.set_state(RecorderState.ERROR)
         self.status_label.setText(message)
         if self._close_on_success:
-            self.show()
-            self.raise_()
+            # Headless/record-and-copy mode: surface the error via the OS
+            # notifier and close the session so the next Ctrl+Alt+N can run.
+            self._close_session(notification=("Vox Voice Paste", message))
 
     def _copy_final_text(self, text: str) -> None:
         self.set_state(RecorderState.COPYING)
@@ -340,19 +398,84 @@ class RecorderWindow(QDialog):
     def _runner_finished(self) -> None:
         self._runner = None
         if self._finish_after_runner_stops:
-            self._quit_after_success()
+            self._finish_after_runner_stops = False
+            self._quit_application()
 
     @Slot()
     def _finish_after_success(self) -> None:
-        if self._state is RecorderState.SUCCESS:
-            self.hide()
-            if self._runner is not None and self._runner.is_running():
-                self._runner.cancel()
-                self._runner.join(timeout=0.3)
-            self._quit_after_success()
+        if self._state is not RecorderState.SUCCESS:
+            return
+        self._close_session()
 
-    def _quit_after_success(self) -> None:
+    @Slot()
+    def _enforce_post_stop_deadline(self) -> None:
+        if self._state in {
+            RecorderState.IDLE,
+            RecorderState.RECORDING,
+            RecorderState.SUCCESS,
+            RecorderState.CANCELLED,
+        }:
+            return
+        _logger.warning(
+            "Post-stop deadline (%sms) elapsed in state %s; closing session.",
+            POST_STOP_DEADLINE_MS,
+            self._state,
+        )
+        self._close_session(
+            notification=(
+                "Vox Voice Paste",
+                "Transcription incomplete: no final text received.",
+            )
+        )
+
+    def _close_session(
+        self,
+        *,
+        notification: tuple[str, str] | None = None,
+    ) -> None:
+        """Tear down the dictation session and quit the Qt event loop.
+
+        Hides the window immediately, fires an optional desktop notification,
+        cancels the worker thread, and quits via the `finished` signal once
+        the worker exits. The optional force-quit watchdog kicks in only if
+        the worker fails to emit `finished` within the deadline.
+        """
+        if notification is not None:
+            title, body = notification
+            try:
+                self._notifications.notify(title, body)
+            except Exception:
+                _logger.exception("Failed to dispatch close-session notification.")
+        self.hide()
+        self._mock_timer.stop()
+        self._level_timer.stop()
+        if self._runner is None or not self._runner.is_running():
+            self._quit_application()
+            return
+        self._finish_after_runner_stops = True
+        self._runner.cancel()
+        if self._force_process_exit_on_success:
+            # Isolated safety net: if the worker thread fails to emit
+            # `finished` within the deadline, force the Qt event loop to
+            # exit anyway. This does not call os._exit; it just stops
+            # waiting on the daemon worker.
+            QTimer.singleShot(
+                FORCE_QUIT_AFTER_SUCCESS_MS,
+                self._force_quit_application,
+            )
+
+    @Slot()
+    def _force_quit_application(self) -> None:
+        if not self._finish_after_runner_stops:
+            return
+        _logger.warning(
+            "Transcription runner did not finish within %sms; forcing Qt quit.",
+            FORCE_QUIT_AFTER_SUCCESS_MS,
+        )
         self._finish_after_runner_stops = False
+        self._quit_application()
+
+    def _quit_application(self) -> None:
         self._mock_timer.stop()
         self._level_timer.stop()
         self.done(QDialog.DialogCode.Accepted)
@@ -403,7 +526,7 @@ class RecorderWindow(QDialog):
         self._level_timer.stop()
         if self._runner is not None:
             self._runner.cancel()
-            self._runner.join()
+            self._runner.join(timeout=RUNNER_JOIN_TIMEOUT_SECONDS)
         super().closeEvent(event)
 
 

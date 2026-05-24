@@ -1,6 +1,6 @@
 [project]
 name = "voice2paste"
-version = "0.1.8"
+version = "0.1.9"
 description = "Ubuntu desktop voice dictation helper that copies transcriptions to the clipboard."
 readme = "README.md"
 requires-python = ">=3.12"

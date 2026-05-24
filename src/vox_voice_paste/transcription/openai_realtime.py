@@ -56,6 +56,7 @@ class OpenAIRealtimeTranscriptionService:
             websocket_url(self._config),
             additional_headers={"Authorization": f"Bearer {self._config.api_key}"},
             open_timeout=self._config.connect_timeout_seconds,
+            close_timeout=self._config.close_timeout_seconds,
         ) as websocket:
             await websocket.send(json.dumps(build_session_update(self._config)))
             sender = asyncio.create_task(send_audio(websocket, audio_chunks))

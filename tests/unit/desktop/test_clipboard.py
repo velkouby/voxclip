@@ -38,3 +38,23 @@ def test_copy_with_command_raises_clipboard_error(monkeypatch) -> None:
 
     with pytest.raises(ClipboardError):
         copy_with_command(["wl-copy"], "text")
+
+
+def test_copy_with_command_does_not_pipe_stdout_or_stderr(monkeypatch) -> None:
+    """wl-copy / xclip double-fork a daemon that inherits open pipes; if we
+    pass PIPE for stdout/stderr the read end stays open and subprocess.run
+    blocks until timeout even though the clipboard was set correctly."""
+    captured: dict = {}
+
+    def fake_run(*args, **kwargs):
+        captured.update(kwargs)
+        return subprocess.CompletedProcess(args=args[0], returncode=0)
+
+    monkeypatch.setattr("subprocess.run", fake_run)
+
+    copy_with_command(["wl-copy"], "hello")
+
+    assert captured.get("stdout") is subprocess.DEVNULL
+    assert captured.get("stderr") is subprocess.DEVNULL
+    assert "capture_output" not in captured or captured.get("capture_output") is None
+    assert captured.get("start_new_session") is True
