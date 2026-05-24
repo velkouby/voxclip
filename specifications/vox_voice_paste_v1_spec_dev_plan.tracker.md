@@ -2,7 +2,7 @@
 
 Source : `specifications/vox_voice_paste_v1_spec_dev_plan.md`  
 Date de creation : 2026-05-23  
-Statut global : En cours - Phase E mock implementee, clipboard/notifications et validations reelles restantes  
+Statut global : En cours - Phase F implementee, validation clipboard Wayland et branchements reels restants  
 Environnement cible : Ubuntu desktop, priorite GNOME / Wayland  
 Environnement local observe : `uv 0.9.17`, `.venv` present, Python `3.14.2`, depot Git initialise
 
@@ -87,7 +87,7 @@ Points a suivre :
   - Verification officielle 2026-05-24 : la documentation Realtime Transcription courante cible `gpt-realtime-whisper`.
   - Decision : conserver `gpt-realtime-whisper` comme defaut configurable.
   - Source officielle : https://platform.openai.com/docs/guides/realtime-transcription
-- [ ] Ne pas faire dependre la copie presse-papiers uniquement de `QClipboard` sans validation Wayland.
+- [x] Ne pas faire dependre la copie presse-papiers uniquement de `QClipboard` sans validation Wayland.
   - Sous Linux, la persistance du contenu apres fermeture immediate du processus doit etre testee.
   - Prevoir un `ClipboardService` capable d'utiliser Qt, `wl-copy` sur Wayland, et `xclip` ou `xsel` sur X11 selon disponibilite.
 - [ ] Ajouter un verrou de session pour empecher deux dictees concurrentes.
@@ -254,9 +254,9 @@ Tracking :
   - Local : `uv run vox-voice-paste --list-audio-devices` echoue car la bibliotheque PortAudio est absente.
   - Action Ubuntu : installer `libportaudio2`.
 - [ ] Backend Secret Service pour `keyring`.
-- [ ] `wl-clipboard` recommande sur Wayland si retenu.
-- [ ] `xclip` ou `xsel` recommande sur X11 si retenu.
-- [ ] Systeme de notifications compatible `org.freedesktop.Notifications`.
+- [x] `wl-clipboard` recommande sur Wayland si retenu.
+- [x] `xclip` ou `xsel` recommande sur X11 si retenu.
+- [x] Systeme de notifications compatible `org.freedesktop.Notifications`.
 
 ---
 
@@ -376,7 +376,7 @@ Etats UI a couvrir :
 - [x] `recording`
 - [x] `stopping`
 - [x] `transcribing_final`
-- [ ] `copying`
+- [x] `copying`
 - [x] `success`
 - [x] `error`
 - [x] `cancelled`
@@ -392,23 +392,27 @@ Critere d'acceptation :
 
 Objectif : copier le texte final et informer clairement l'utilisateur.
 
-- [ ] `F-001` `P0` Definir interface `ClipboardService`.
-- [ ] `F-002` `P0` Implementer copie texte final non vide.
-- [ ] `F-003` `P0` Garantir que l'annulation ne copie rien.
-- [ ] `F-004` `P0` Garantir qu'un texte vide ne remplace pas le presse-papiers.
-- [ ] `F-005` `P0` Valider persistance clipboard apres fermeture sur Wayland.
-- [ ] `F-006` `P1` Ajouter fallback `wl-copy` / `xclip` / `xsel` selon environnement.
-- [ ] `F-007` `P0` Definir interface `NotificationService`.
-- [ ] `F-008` `P0` Implementer notification succes.
+- [x] `F-001` `P0` Definir interface `ClipboardService`.
+- [x] `F-002` `P0` Implementer copie texte final non vide.
+- [x] `F-003` `P0` Garantir que l'annulation ne copie rien.
+- [x] `F-004` `P0` Garantir qu'un texte vide ne remplace pas le presse-papiers.
+- [!] `F-005` `P0` Valider persistance clipboard apres fermeture sur Wayland.
+  - Implementation preferee via `wl-copy`; validation reelle a faire sur session Wayland.
+- [x] `F-006` `P1` Ajouter fallback `wl-copy` / `xclip` / `xsel` selon environnement.
+- [x] `F-007` `P0` Definir interface `NotificationService`.
+- [x] `F-008` `P0` Implementer notification succes.
 - [ ] `F-009` `P1` Implementer notifications annulation, erreur, texte vide.
 - [ ] `F-010` `P1` Ajouter bouton "Copier le texte partiel" en cas d'erreur apres transcript partiel.
 
 Critere d'acceptation :
 
-- [ ] Apres transcription mock, `Ctrl+V` colle le texte attendu.
-- [ ] La notification succes est affichee.
-- [ ] La copie survit a la fermeture automatique de la fenetre.
-- [ ] Une erreur clipboard laisse le texte visible et recuperable.
+- [!] Apres transcription mock, `Ctrl+V` colle le texte attendu.
+  - Couvert par service fake ; validation manuelle restante selon clipboard systeme.
+- [!] La notification succes est affichee.
+  - Couvert par service fake ; validation manuelle restante selon session desktop.
+- [!] La copie survit a la fermeture automatique de la fenetre.
+  - Depend de `wl-copy`, `xclip` ou `xsel` en environnement reel.
+- [x] Une erreur clipboard laisse le texte visible et recuperable.
 
 ### Phase G - Assistant de configuration
 
@@ -560,8 +564,8 @@ Critere d'acceptation release :
 
 ### Epic Desktop
 
-- [ ] `DESK-001` `P0` Copier texte dans presse-papiers.
-- [ ] `DESK-002` `P0` Notification succes.
+- [x] `DESK-001` `P0` Copier texte dans presse-papiers.
+- [x] `DESK-002` `P0` Notification succes.
 - [ ] `DESK-003` `P1` Notification annulation.
 - [ ] `DESK-004` `P1` Notification erreur.
 - [ ] `DESK-005` `P1` Bouton copier texte partiel.
@@ -600,7 +604,7 @@ Critere d'acceptation release :
 - [x] Presence de cle OpenAI sans affichage.
 - [x] Masquage secrets dans logs.
 - [x] Normalisation du transcript final.
-- [ ] Refus de copier un texte vide.
+- [x] Refus de copier un texte vide.
 - [x] Aggregation des deltas.
 - [ ] State machine.
 - [x] Diagnostic sans donnees sensibles.
@@ -611,8 +615,8 @@ Critere d'acceptation release :
 - [ ] Transcription mock complete.
 - [ ] Source audio factice vers transcription mock.
 - [x] Fenetre UI avec `pytest-qt`.
-- [ ] Clipboard fake.
-- [ ] Notifications fake.
+- [x] Clipboard fake.
+- [x] Notifications fake.
 - [ ] Erreur OpenAI simulee.
 - [ ] Timeout simule.
 - [ ] Annulation pendant enregistrement.
@@ -651,7 +655,7 @@ Critere d'acceptation release :
 - [ ] `AC-004` Commande raccourci affichee et copiable.
 - [ ] `AC-005` Dictee mock progressive.
 - [ ] `AC-006` Dictee reelle copie le texte final.
-- [ ] `AC-007` Notification succes.
+- [x] `AC-007` Notification succes.
 - [ ] `AC-008` Annulation sans modification du presse-papiers.
 - [ ] `AC-009` Texte vide sans ecrasement du presse-papiers.
 - [ ] `AC-010` Erreur reseau lisible sans crash.

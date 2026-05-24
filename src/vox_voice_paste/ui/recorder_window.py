@@ -15,6 +15,13 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
+from vox_voice_paste.desktop import (
+    ClipboardError,
+    ClipboardService,
+    DesktopNotificationService,
+    NotificationService,
+    SystemClipboardService,
+)
 from vox_voice_paste.transcription import (
     MockTranscriptionService,
     TranscriptBuffer,
@@ -42,12 +49,16 @@ class RecorderWindow(QDialog):
         self,
         *,
         transcription_service: TranscriptionService | None = None,
+        clipboard_service: ClipboardService | None = None,
+        notification_service: NotificationService | None = None,
         auto_start: bool = False,
         close_on_success: bool = False,
         parent: QWidget | None = None,
     ) -> None:
         super().__init__(parent)
         self._service = transcription_service or MockTranscriptionService()
+        self._clipboard = clipboard_service or SystemClipboardService()
+        self._notifications = notification_service or DesktopNotificationService()
         self._close_on_success = close_on_success
         self._buffer = TranscriptBuffer()
         self._state = RecorderState.IDLE
@@ -186,9 +197,7 @@ class RecorderWindow(QDialog):
         if event.type is TranscriptionEventType.FINAL:
             self._level_timer.stop()
             self.level_meter.setValue(0)
-            self.set_state(RecorderState.SUCCESS)
-            if self._close_on_success:
-                QTimer.singleShot(250, self.close)
+            self._copy_final_text(self._buffer.final_text)
 
     @Slot(str)
     def _handle_error(self, message: str) -> None:
@@ -197,6 +206,22 @@ class RecorderWindow(QDialog):
         self._level_timer.stop()
         self.set_state(RecorderState.ERROR)
         self.status_label.setText(message)
+
+    def _copy_final_text(self, text: str) -> None:
+        self.set_state(RecorderState.COPYING)
+        try:
+            self._clipboard.copy_text(text)
+        except ClipboardError as exc:
+            self._handle_error(str(exc))
+            return
+
+        self._notifications.notify(
+            "Vox Voice Paste",
+            "Texte copie. Faites Ctrl+V pour coller.",
+        )
+        self.set_state(RecorderState.SUCCESS)
+        if self._close_on_success:
+            QTimer.singleShot(250, self.close)
 
     @Slot()
     def _mark_transcribing_final(self) -> None:

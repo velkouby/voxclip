@@ -40,6 +40,13 @@ runtime before listing or capturing real microphones:
 sudo apt install libportaudio2
 ```
 
+Clipboard persistence is best on Linux when one of these command-line clipboard
+helpers is installed:
+
+```bash
+sudo apt install wl-clipboard xclip xsel
+```
+
 For headless UI checks, use Qt offscreen:
 
 ```bash
