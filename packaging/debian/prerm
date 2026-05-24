@@ -1,0 +1,47 @@
+#!/bin/sh
+set -eu
+
+SHORTCUT_FILE="vox-voice-paste-shortcut.desktop"
+RUNNER="/usr/bin/vox-voice-paste"
+
+remove_user_autostart() {
+    home_dir="$1"
+    [ -n "$home_dir" ] || return 0
+    [ -d "$home_dir" ] || return 0
+
+    autostart_file="$home_dir/.config/autostart/$SHORTCUT_FILE"
+    rm -f "$autostart_file" || true
+}
+
+run_as_user_cleanup() {
+    user="$1"
+    home_dir="$2"
+
+    if [ -x "$RUNNER" ]; then
+        if command -v runuser >/dev/null 2>&1; then
+            runuser -u "$user" -- "$RUNNER" --remove-ubuntu-shortcut >/dev/null 2>&1 || true
+        elif command -v su >/dev/null 2>&1; then
+            su - "$user" -c "HOME=$home_dir $RUNNER --remove-ubuntu-shortcut" >/dev/null 2>&1 || true
+        fi
+    fi
+}
+
+cleanup_for_user() {
+    user="$1"
+    uid="$2"
+    home_dir="$3"
+
+    [ "$uid" -ge 1000 ] || return 0
+    remove_user_autostart "$home_dir"
+    run_as_user_cleanup "$user" "$home_dir"
+}
+
+case "$1" in
+    remove|purge)
+        while IFS=: read -r user _ uid _ _ home_dir _; do
+            cleanup_for_user "$user" "$uid" "$home_dir" || true
+        done < /etc/passwd
+        ;;
+esac
+
+exit 0

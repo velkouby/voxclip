@@ -5,6 +5,8 @@ import base64
 import json
 from collections.abc import AsyncIterator
 
+from websockets.exceptions import WebSocketException
+
 from vox_voice_paste.transcription import TranscriptionConfig, TranscriptionEventType
 from vox_voice_paste.transcription.openai_realtime import (
     OpenAIRealtimeTranscriptionService,
@@ -39,10 +41,10 @@ def test_build_session_update_uses_transcription_session_shape() -> None:
     assert payload["session"]["audio"]["input"]["turn_detection"] is None
 
 
-def test_websocket_url_includes_configured_model() -> None:
+def test_websocket_url_uses_transcription_intent() -> None:
     url = websocket_url(TranscriptionConfig(api_key="sk-test", model="gpt-realtime-whisper"))
 
-    assert url == "wss://api.openai.com/v1/realtime?model=gpt-realtime-whisper"
+    assert url == "wss://api.openai.com/v1/realtime?intent=transcription"
 
 
 def test_parse_realtime_delta_and_completed_events() -> None:
@@ -109,6 +111,31 @@ def test_openai_service_reports_missing_api_key_without_network() -> None:
     assert len(events) == 1
     assert events[0].type is TranscriptionEventType.ERROR
     assert events[0].error == "OpenAI API key is missing."
+
+
+def test_openai_service_reports_websocket_error_detail(monkeypatch) -> None:
+    async def chunks() -> AsyncIterator[bytes]:
+        yield b"abc"
+
+    def fail_connect(*args, **kwargs):
+        raise WebSocketException("server rejected WebSocket connection: HTTP 403")
+
+    monkeypatch.setattr(
+        "vox_voice_paste.transcription.openai_realtime.websockets.connect",
+        fail_connect,
+    )
+
+    async def run() -> list:
+        service = OpenAIRealtimeTranscriptionService(
+            TranscriptionConfig(api_key="sk-test", connect_timeout_seconds=0.01)
+        )
+        return [event async for event in service.transcribe(chunks())]
+
+    events = asyncio.run(run())
+
+    assert len(events) == 1
+    assert events[0].type is TranscriptionEventType.ERROR
+    assert "HTTP 403" in str(events[0].error)
 
 
 class FakeWebSocket:

@@ -2,8 +2,8 @@ from __future__ import annotations
 
 from PySide6.QtWidgets import QDialog
 
-from vox_voice_paste.desktop import InMemoryClipboardService
 from vox_voice_paste.config import load_config
+from vox_voice_paste.desktop import InMemoryClipboardService
 from vox_voice_paste.security import InMemorySecretService, StaticOpenAIKeyValidator
 from vox_voice_paste.ui.onboarding_window import SHORTCUT_COMMAND
 from vox_voice_paste.ui.settings_window import SettingsWindow
@@ -61,7 +61,11 @@ def test_settings_window_copies_shortcut_command(qtbot, tmp_path) -> None:
     assert "copiee" in window.shortcut_status.text()
 
 
-def test_settings_window_installs_shortcut_and_persists_choice(qtbot, tmp_path, monkeypatch) -> None:
+def test_settings_window_installs_shortcut_and_persists_choice(
+    qtbot,
+    tmp_path,
+    monkeypatch,
+) -> None:
     recorded = {}
 
     def fake_set_ubuntu_shortcut(*, shortcut: str, command: str) -> None:

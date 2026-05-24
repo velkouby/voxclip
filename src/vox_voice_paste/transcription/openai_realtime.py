@@ -38,10 +38,14 @@ class OpenAIRealtimeTranscriptionService:
             yield TranscriptionEvent.error_event("Timed out while waiting for final transcript.")
         except OSError:
             yield TranscriptionEvent.error_event("Network error while contacting OpenAI.")
-        except WebSocketException:
-            yield TranscriptionEvent.error_event("Realtime transcription connection failed.")
-        except Exception:
-            yield TranscriptionEvent.error_event("Realtime transcription failed.")
+        except WebSocketException as exc:
+            yield TranscriptionEvent.error_event(
+                f"Realtime transcription connection failed: {_safe_error_detail(exc)}"
+            )
+        except Exception as exc:
+            yield TranscriptionEvent.error_event(
+                f"Realtime transcription failed: {_safe_error_detail(exc)}"
+            )
 
     async def _transcribe(
         self,
@@ -73,7 +77,7 @@ class OpenAIRealtimeTranscriptionService:
 
 
 def websocket_url(config: TranscriptionConfig) -> str:
-    return f"{config.websocket_base_url}?{urlencode({'model': config.model})}"
+    return f"{config.websocket_base_url}?{urlencode({'intent': 'transcription'})}"
 
 
 def build_session_update(config: TranscriptionConfig) -> dict[str, Any]:
@@ -143,3 +147,8 @@ def parse_realtime_event(raw_event: dict[str, Any]) -> TranscriptionEvent | None
 
 def _optional_str(value: Any) -> str | None:
     return str(value) if value is not None else None
+
+
+def _safe_error_detail(exc: Exception) -> str:
+    detail = str(exc).strip()
+    return detail or exc.__class__.__name__

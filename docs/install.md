@@ -29,7 +29,7 @@ sudo apt install \
 The installed shortcut command for Ubuntu custom keyboard shortcuts is:
 
 ```bash
-vox-voice-paste --record-and-copy
+/usr/bin/vox-voice-paste --record-and-copy
 ```
 
 The app also applies this GNOME shortcut automatically on startup and installs a

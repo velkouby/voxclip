@@ -128,7 +128,7 @@ vox-voice-paste --delete-openai-key
 Configurer un raccourci clavier Ubuntu personnalise qui execute :
 
 ```bash
-vox-voice-paste --record-and-copy
+/usr/bin/vox-voice-paste --record-and-copy
 ```
 
 Raccourci recommande : `Ctrl+Alt+N`.

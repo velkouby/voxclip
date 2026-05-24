@@ -4,9 +4,9 @@ import subprocess
 import sys
 
 from vox_voice_paste.audio import AudioInputDevice
-from vox_voice_paste.ui.onboarding_window import RECOMMENDED_SHORTCUT, SHORTCUT_COMMAND
 from vox_voice_paste.cli import build_parser, main
 from vox_voice_paste.security import OPENAI_API_KEY_SECRET, InMemorySecretService
+from vox_voice_paste.ui.onboarding_window import RECOMMENDED_SHORTCUT, SHORTCUT_COMMAND
 
 
 def test_build_parser_contains_expected_commands() -> None:
