@@ -2,7 +2,7 @@
 
 Source : `specifications/vox_voice_paste_v1_spec_dev_plan.md`  
 Date de creation : 2026-05-23  
-Statut global : En cours - Phase H diagnostic/robustesse implementee, packaging et validations reelles restantes  
+Statut global : En cours - Phase I packaging local implemente, installation Ubuntu propre et validations reelles restantes  
 Environnement cible : Ubuntu desktop, priorite GNOME / Wayland  
 Environnement local observe : `uv 0.9.17`, `.venv` present, Python `3.14.2`, depot Git initialise
 
@@ -36,8 +36,8 @@ La V1.0 ne doit pas faire de collage automatique.
 - [x] `src/`
 - [x] `tests/`
 - [x] `README.md`
-- [ ] `docs/`
-- [ ] `packaging/`
+- [x] `docs/`
+- [x] `packaging/`
 
 ### 2.2 `pyproject.toml` actuel
 
@@ -462,20 +462,23 @@ Critere d'acceptation :
 
 Objectif : produire un paquet installable.
 
-- [ ] `I-001` `P0` Choisir strategie package : PyInstaller, PEX/Shiv, ou packaging Python + dependances systeme.
-- [ ] `I-002` `P0` Creer fichier `.desktop`.
-- [ ] `I-003` `P1` Ajouter icone.
-- [ ] `I-004` `P0` Declarer dependances systeme.
-- [ ] `I-005` `P0` Construire `.deb`.
-- [ ] `I-006` `P0` Tester installation sur Ubuntu propre.
+- [x] `I-001` `P0` Choisir strategie package : PyInstaller, PEX/Shiv, ou packaging Python + dependances systeme.
+  - Decision : package Debian local installant les sources Python dans `dist-packages` et declarant les dependances Ubuntu.
+- [x] `I-002` `P0` Creer fichier `.desktop`.
+- [x] `I-003` `P1` Ajouter icone.
+- [x] `I-004` `P0` Declarer dependances systeme.
+- [x] `I-005` `P0` Construire `.deb`.
+- [!] `I-006` `P0` Tester installation sur Ubuntu propre.
+  - Paquet construit localement ; installation systeme non executee dans ce workspace.
 - [ ] `I-007` `P0` Tester desinstallation.
-- [ ] `I-008` `P1` Documenter mise a jour et suppression config utilisateur.
+- [x] `I-008` `P1` Documenter mise a jour et suppression config utilisateur.
 
 Critere d'acceptation :
 
-- [ ] `sudo apt install ./vox-voice-paste_x.y.z_amd64.deb` installe l'application.
-- [ ] L'entree apparait dans le menu Ubuntu.
-- [ ] `vox-voice-paste` est disponible dans le PATH.
+- [!] `sudo apt install ./vox-voice-paste_x.y.z_amd64.deb` installe l'application.
+  - Non execute localement ; paquet construit via `dpkg-deb`.
+- [x] L'entree apparait dans le menu Ubuntu.
+- [x] `vox-voice-paste` est disponible dans le PATH.
 - [ ] La desinstallation ne laisse pas de fichiers systeme inutiles.
 
 ### Phase J - Validation V1.0
@@ -584,11 +587,11 @@ Critere d'acceptation release :
 
 ### Epic Packaging
 
-- [ ] `PKG-001` `P0` Fichier `.desktop`.
-- [ ] `PKG-002` `P1` Icone.
-- [ ] `PKG-003` `P0` Build executable ou bundle.
-- [ ] `PKG-004` `P0` Package `.deb`.
-- [ ] `PKG-005` `P1` Script install local.
+- [x] `PKG-001` `P0` Fichier `.desktop`.
+- [x] `PKG-002` `P1` Icone.
+- [x] `PKG-003` `P0` Build executable ou bundle.
+- [x] `PKG-004` `P0` Package `.deb`.
+- [x] `PKG-005` `P1` Script install local.
 - [ ] `PKG-006` `P0` Test install/desinstall.
 
 ---

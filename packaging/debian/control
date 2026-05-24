@@ -1,0 +1,10 @@
+Package: vox-voice-paste
+Version: 0.1.0
+Section: utils
+Priority: optional
+Architecture: all
+Maintainer: Vox Voice Paste Maintainers <maintainers@example.invalid>
+Depends: python3 (>= 3.12), python3-pyside6.qtcore, python3-pyside6.qtgui, python3-pyside6.qtwidgets, python3-numpy, python3-keyring, python3-platformdirs, python3-pydantic, python3-sounddevice, python3-websockets, python3-tomli-w, libportaudio2, wl-clipboard | xclip | xsel, libnotify-bin
+Description: Ubuntu desktop voice dictation helper
+ Vox Voice Paste opens a small recorder, transcribes speech, copies the final
+ transcript to the clipboard, and lets the user paste it manually.

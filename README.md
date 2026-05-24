@@ -55,6 +55,12 @@ For headless UI checks, use Qt offscreen:
 QT_QPA_PLATFORM=offscreen uv run vox-voice-paste --record-and-copy --mock
 ```
 
+Build a local Debian package:
+
+```bash
+uv run python packaging/build_deb.py
+```
+
 ## Product Constraints
 
 - No automatic paste simulation in V1.

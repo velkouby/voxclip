@@ -1,0 +1,10 @@
+[Desktop Entry]
+Type=Application
+Name=Vox Voice Paste
+Comment=Dictate text and copy the transcription to the clipboard
+Exec=vox-voice-paste
+TryExec=vox-voice-paste
+Icon=vox-voice-paste
+Terminal=false
+Categories=Utility;AudioVideo;Audio;
+StartupNotify=true
