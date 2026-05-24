@@ -2,7 +2,7 @@
 
 Source : `specifications/vox_voice_paste_v1_spec_dev_plan.md`  
 Date de creation : 2026-05-23  
-Statut global : En cours - flux reel cable, installation Ubuntu propre et validations reelles restantes  
+Statut global : En cours - validation automatique passee, validations reelles Ubuntu/OpenAI restantes  
 Environnement cible : Ubuntu desktop, priorite GNOME / Wayland  
 Environnement local observe : `uv 0.9.17`, `.venv` present, Python `3.14.2`, depot Git initialise
 
@@ -119,11 +119,12 @@ Definition of done globale :
 - [x] La commande `uv run vox-voice-paste --help` fonctionne.
 - [x] La commande `uv run vox-voice-paste --record-and-copy --mock` ouvre la fenetre et produit une transcription simulee.
 - [x] La commande configuree dans Ubuntu est documentee : `vox-voice-paste --record-and-copy`.
-- [ ] Une dictee reelle courte copie le texte final dans le presse-papiers.
-- [ ] L'annulation ne modifie pas le presse-papiers.
+- [!] Une dictee reelle courte copie le texte final dans le presse-papiers.
+  - Flux reel cable ; validation bloquee localement par PortAudio absent et cle OpenAI absente.
+- [x] L'annulation ne modifie pas le presse-papiers.
 - [x] Une erreur reseau ou OpenAI ne provoque pas de crash.
 - [x] Le diagnostic ne revele aucune donnee sensible.
-- [ ] Les tests unitaires et les tests d'integration mock passent via `uv run pytest`.
+- [x] Les tests unitaires et les tests d'integration mock passent via `uv run pytest`.
 
 ---
 
@@ -346,8 +347,9 @@ Objectif : avoir une interface de transcription testable, puis brancher OpenAI.
 
 Critere d'acceptation :
 
-- [ ] Le mode mock affiche une transcription progressive sans cle OpenAI.
-- [ ] Le mode reel transcrit une phrase courte.
+- [x] Le mode mock affiche une transcription progressive sans cle OpenAI.
+- [!] Le mode reel transcrit une phrase courte.
+  - Flux reel cable ; validation manuelle restante avec micro, PortAudio et cle OpenAI.
 - [x] Aucun test unitaire n'appelle OpenAI.
 - [x] Le modele utilise est configurable.
 
@@ -485,7 +487,7 @@ Critere d'acceptation :
 
 Objectif : verifier les cas reels avant release.
 
-- [ ] `J-001` `P0` Ubuntu 24.04 GNOME Wayland.
+- [!] `J-001` `P0` Ubuntu 24.04 GNOME Wayland.
 - [ ] `J-002` `P1` Ubuntu 24.04 GNOME X11 si disponible.
 - [ ] `J-003` `P0` GNOME Text Editor.
 - [ ] `J-004` `P0` Firefox.
@@ -498,18 +500,19 @@ Objectif : verifier les cas reels avant release.
 - [ ] `J-011` `P0` Dictee francaise.
 - [ ] `J-012` `P0` Dictee anglaise.
 - [ ] `J-013` `P0` Reseau coupe.
-- [ ] `J-014` `P0` Cle OpenAI invalide.
-- [ ] `J-015` `P0` Dictee vide.
-- [ ] `J-016` `P0` Annulation.
+- [x] `J-014` `P0` Cle OpenAI invalide.
+- [x] `J-015` `P0` Dictee vide.
+- [x] `J-016` `P0` Annulation.
 - [ ] `J-017` `P1` Dictee longue de 2 minutes.
 
 Critere d'acceptation release :
 
 - [ ] Aucun crash bloquant.
-- [ ] Texte final copiable et recuperable.
-- [ ] Clipboard non modifie en cas d'annulation ou texte vide.
-- [ ] Erreurs comprehensibles.
-- [ ] L'utilisateur peut toujours recuperer un transcript final produit.
+- [!] Texte final copiable et recuperable.
+  - Couvert en mock/fake ; validation reelle restante.
+- [x] Clipboard non modifie en cas d'annulation ou texte vide.
+- [x] Erreurs comprehensibles.
+- [x] L'utilisateur peut toujours recuperer un transcript final produit.
 
 ---
 
@@ -627,7 +630,7 @@ Critere d'acceptation release :
 ### Manuels
 
 - [ ] Vrai micro.
-- [ ] Vraie cle OpenAI.
+- [!] Vraie cle OpenAI.
 - [ ] Ubuntu Wayland.
 - [ ] Raccourci clavier Ubuntu.
 - [ ] Collage manuel dans plusieurs applications.
@@ -672,7 +675,7 @@ La V1.0 est prete seulement si :
 - [ ] Tous les items `P0` des phases A a H sont termines.
 - [ ] Le package ou mode d'installation retenu est documente.
 - [ ] La validation Wayland est passee.
-- [ ] La validation OpenAI reelle est passee.
+- [!] La validation OpenAI reelle est passee.
 - [ ] La validation clipboard apres fermeture est passee.
 - [ ] Les erreurs principales ont ete testees : cle absente, cle invalide, reseau coupe, micro absent, texte vide.
 - [ ] Les tests automatises critiques passent.
