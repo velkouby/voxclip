@@ -5,7 +5,6 @@ from pathlib import Path
 
 from PySide6.QtWidgets import QApplication, QDialog
 
-from vox_voice_paste.audio import AudioDeviceError, list_input_devices
 from vox_voice_paste.config import load_config
 from vox_voice_paste.desktop import (
     ClipboardService,
@@ -44,7 +43,6 @@ def run_record_and_copy(
         with SessionLock():
             app = QApplication.instance() or QApplication(sys.argv[:1])
             config = load_config()
-            devices = _input_devices()
             if mock:
                 service = MockTranscriptionService(delay_seconds=0.05)
             else:
@@ -58,7 +56,6 @@ def run_record_and_copy(
                 service = _openai_transcription_service(config, api_key=api_key)
             window = RecorderWindow(
                 transcription_service=service,
-                input_devices=devices,
                 auto_start=True,
                 close_on_success=True,
                 force_process_exit_on_success=True,
@@ -104,13 +101,6 @@ def _openai_transcription_service(config, *, api_key: str) -> OpenAIRealtimeTran
             delay=config.transcription_delay,
         )
     )
-
-
-def _input_devices():
-    try:
-        return list_input_devices()
-    except AudioDeviceError:
-        return []
 
 
 def run_main_app(

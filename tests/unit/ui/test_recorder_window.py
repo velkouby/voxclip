@@ -4,7 +4,7 @@ import asyncio
 
 from PySide6.QtCore import Qt
 
-from vox_voice_paste.audio import AudioChunk, AudioInputDevice
+from vox_voice_paste.audio import AudioChunk
 from vox_voice_paste.desktop import (
     ClipboardError,
     InMemoryClipboardService,
@@ -12,6 +12,7 @@ from vox_voice_paste.desktop import (
 )
 from vox_voice_paste.transcription import MockTranscriptionService, TranscriptionEvent
 from vox_voice_paste.ui import RecorderState, RecorderWindow
+from vox_voice_paste.ui.recorder_window import RECORD_SYMBOL
 
 
 def test_recorder_window_starts_in_idle_state(qtbot) -> None:
@@ -19,8 +20,8 @@ def test_recorder_window_starts_in_idle_state(qtbot) -> None:
     qtbot.addWidget(window)
 
     assert window.state is RecorderState.IDLE
-    assert window.primary_button.text() == "Demarrer"
-    assert window.transcript_edit.toPlainText() == ""
+    assert window.primary_button.text() == RECORD_SYMBOL
+    assert window._buffer.text == ""
 
 
 def test_recorder_window_mock_transcription_reaches_success(qtbot) -> None:
@@ -37,7 +38,7 @@ def test_recorder_window_mock_transcription_reaches_success(qtbot) -> None:
 
     qtbot.waitUntil(lambda: window.state is RecorderState.SUCCESS, timeout=2000)
 
-    assert window.transcript_edit.toPlainText() == "bonjour monde"
+    assert window._buffer.final_text == "bonjour monde"
     assert clipboard.text == "bonjour monde"
     assert notifications.notifications[-1].body == "Texte copie. Faites Ctrl+V pour coller."
 
@@ -249,7 +250,7 @@ def test_recorder_window_refuses_to_copy_empty_transcript(qtbot) -> None:
     assert "empty text" in window.status_label.text()
 
 
-def test_recorder_window_keeps_text_visible_when_clipboard_fails(qtbot) -> None:
+def test_recorder_window_surfaces_clipboard_error_in_status(qtbot) -> None:
     window = RecorderWindow(
         transcription_service=MockTranscriptionService("bonjour monde", delay_seconds=0),
         clipboard_service=FailingClipboardService(),
@@ -261,7 +262,7 @@ def test_recorder_window_keeps_text_visible_when_clipboard_fails(qtbot) -> None:
 
     qtbot.waitUntil(lambda: window.state is RecorderState.ERROR, timeout=1000)
 
-    assert window.transcript_edit.toPlainText() == "bonjour monde"
+    assert window._buffer.text == "bonjour monde"
     assert "clipboard failed" in window.status_label.text()
 
 
@@ -270,14 +271,7 @@ def test_recorder_window_real_service_path_uses_audio_source(qtbot) -> None:
     window = RecorderWindow(
         transcription_service=EchoTranscriptionService(),
         audio_source_factory=fake_audio_source,
-        input_devices=[
-            AudioInputDevice(
-                id="7",
-                name="USB Mic",
-                max_input_channels=1,
-                default_sample_rate=24_000,
-            )
-        ],
+        device_id="7",
         clipboard_service=clipboard,
         notification_service=InMemoryNotificationService(),
         auto_start=True,
@@ -288,7 +282,7 @@ def test_recorder_window_real_service_path_uses_audio_source(qtbot) -> None:
     qtbot.waitUntil(lambda: window.state is RecorderState.SUCCESS, timeout=2000)
 
     assert clipboard.text == "bonjour monde"
-    assert window.level_meter.value() == 0
+    assert window._level_active is False
 
 
 class FailingClipboardService:

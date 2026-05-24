@@ -8,22 +8,19 @@ from collections.abc import AsyncIterator, Callable
 from enum import StrEnum
 
 from PySide6.QtCore import QObject, Qt, QTimer, Signal, Slot
-from PySide6.QtGui import QCloseEvent, QKeyEvent, QTextCursor
+from PySide6.QtGui import QCloseEvent, QKeyEvent
 from PySide6.QtWidgets import (
     QApplication,
-    QComboBox,
     QDialog,
     QHBoxLayout,
     QLabel,
     QPushButton,
-    QTextEdit,
     QVBoxLayout,
     QWidget,
 )
 
 from vox_voice_paste.audio import AudioCaptureError, AudioChunk, MicrophoneCapture
 from vox_voice_paste.audio.capture import MicrophoneCaptureConfig
-from vox_voice_paste.audio.devices import AudioInputDevice
 from vox_voice_paste.desktop import (
     ClipboardError,
     ClipboardService,
@@ -39,13 +36,13 @@ from vox_voice_paste.transcription import (
     TranscriptionService,
 )
 
-from .widgets import create_level_meter
-
 _logger = logging.getLogger(__name__)
 
 FORCE_QUIT_AFTER_SUCCESS_MS = 1500
 RUNNER_JOIN_TIMEOUT_SECONDS = 1.0
 POST_STOP_DEADLINE_MS = 5000
+LEVEL_ACTIVE_THRESHOLD = 0.05
+LEVEL_INACTIVE_THRESHOLD = 0.02
 
 
 class RecorderState(StrEnum):
@@ -175,7 +172,7 @@ class RecorderWindow(QDialog):
         *,
         transcription_service: TranscriptionService | None = None,
         audio_source_factory: AudioSourceFactory | None = None,
-        input_devices: list[AudioInputDevice] | None = None,
+        device_id: str | None = None,
         clipboard_service: ClipboardService | None = None,
         notification_service: NotificationService | None = None,
         auto_start: bool = False,
@@ -184,24 +181,23 @@ class RecorderWindow(QDialog):
         parent: QWidget | None = None,
     ) -> None:
         super().__init__(parent)
+        self.setWindowFlag(Qt.WindowType.WindowStaysOnTopHint, True)
         self._service = transcription_service or MockTranscriptionService()
         self._audio_source_factory = audio_source_factory or microphone_audio_source
-        self._input_devices = input_devices or []
+        self._device_id = device_id
         self._clipboard = clipboard_service or SystemClipboardService()
         self._notifications = notification_service or DesktopNotificationService()
         self._close_on_success = close_on_success
         self._force_process_exit_on_success = force_process_exit_on_success
         self._buffer = TranscriptBuffer()
         self._state = RecorderState.IDLE
-        self._level_value = 0
+        self._level_active = False
         self._mock_words: list[str] = []
         self._mock_word_index = 0
         self._runner: ThreadedTranscriptionRunner | None = None
         self._finish_after_runner_stops = False
 
         self._build_ui()
-        self._level_timer = QTimer(self)
-        self._level_timer.timeout.connect(self._advance_mock_level)
         self._mock_timer = QTimer(self)
         self._mock_timer.timeout.connect(self._emit_mock_transcription_event)
 
@@ -215,59 +211,68 @@ class RecorderWindow(QDialog):
 
     def _build_ui(self) -> None:
         self.setWindowTitle("Vox Voice Paste")
-        self.setMinimumWidth(520)
+        self.setFixedSize(180, 200)
 
-        title = QLabel("Vox Voice Paste")
-        title.setObjectName("titleLabel")
+        self.level_indicator = QLabel()
+        self.level_indicator.setObjectName("levelIndicator")
+        self.level_indicator.setFixedHeight(6)
 
-        self.status_label = QLabel()
-        self.device_combo = QComboBox()
-        self.device_combo.addItem("Micro par defaut", None)
-        for device in self._input_devices:
-            marker = " (defaut)" if device.is_default else ""
-            self.device_combo.addItem(f"{device.name}{marker}", device.id)
-
-        self.level_meter = create_level_meter()
-        self.transcript_edit = QTextEdit()
-        self.transcript_edit.setReadOnly(True)
-        self.transcript_edit.setMinimumHeight(150)
-
-        self.primary_button = QPushButton("Demarrer")
+        self.primary_button = QPushButton(_primary_button_text(RecorderState.IDLE))
         self.primary_button.setObjectName("primaryRecordButton")
+        self.primary_button.setFixedSize(110, 110)
         self.primary_button.clicked.connect(self._primary_action)
 
-        self.cancel_button = QPushButton("Annuler")
-        self.cancel_button.clicked.connect(self.cancel)
+        self.status_label = QLabel()
+        self.status_label.setObjectName("statusLabel")
+        self.status_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        self.status_label.setWordWrap(True)
 
-        hint = QLabel("Entree pour arreter, Echap pour annuler")
-        hint.setObjectName("shortcutHint")
-
-        buttons = QHBoxLayout()
-        buttons.addWidget(self.primary_button)
-        buttons.addWidget(self.cancel_button)
+        button_row = QHBoxLayout()
+        button_row.addStretch()
+        button_row.addWidget(self.primary_button)
+        button_row.addStretch()
 
         layout = QVBoxLayout()
-        layout.addWidget(title)
+        layout.setContentsMargins(12, 10, 12, 10)
+        layout.setSpacing(8)
+        layout.addWidget(self.level_indicator)
+        layout.addLayout(button_row)
         layout.addWidget(self.status_label)
-        layout.addWidget(self.device_combo)
-        layout.addWidget(self.level_meter)
-        layout.addWidget(self.transcript_edit)
-        layout.addLayout(buttons)
-        layout.addWidget(hint)
         self.setLayout(layout)
+
+        self._apply_level_indicator_style(active=False)
 
         self.setStyleSheet(
             """
-            QLabel#titleLabel { font-size: 18px; font-weight: 600; }
             QPushButton#primaryRecordButton {
                 background: #c62828;
                 color: white;
+                font-size: 36px;
                 font-weight: 600;
-                min-height: 36px;
+                border: none;
+                border-radius: 55px;
             }
-            QTextEdit { font-size: 14px; }
-            QLabel#shortcutHint { color: #666; }
+            QPushButton#primaryRecordButton:hover {
+                background: #b71c1c;
+            }
+            QPushButton#primaryRecordButton:pressed {
+                background: #8a1818;
+            }
+            QPushButton#primaryRecordButton:disabled {
+                background: #999;
+                color: #eee;
+            }
+            QLabel#statusLabel {
+                font-size: 11px;
+                color: #666;
+            }
             """
+        )
+
+    def _apply_level_indicator_style(self, *, active: bool) -> None:
+        color = "#c62828" if active else "#e0e0e0"
+        self.level_indicator.setStyleSheet(
+            f"#levelIndicator {{ background: {color}; border-radius: 3px; }}"
         )
 
     def set_state(self, state: RecorderState) -> None:
@@ -280,22 +285,20 @@ class RecorderWindow(QDialog):
             RecorderState.COPYING,
         }
         self.primary_button.setEnabled(not busy and state not in {RecorderState.SUCCESS})
-        self.device_combo.setEnabled(state is RecorderState.IDLE)
 
     @Slot()
     def start_recording(self) -> None:
         if self._state is RecorderState.RECORDING:
             return
         self._buffer = TranscriptBuffer()
-        self.transcript_edit.clear()
         self.set_state(RecorderState.RECORDING)
-        self._level_timer.start(80)
 
         if isinstance(self._service, MockTranscriptionService):
             self._mock_words = self._service.transcript.split()
             self._mock_word_index = 0
             interval_ms = max(1, round(self._service.delay_seconds * 1000))
             self._mock_timer.start(interval_ms)
+            self._set_level_active(True)
             return
 
         if not hasattr(self._service, "transcribe"):
@@ -305,7 +308,7 @@ class RecorderWindow(QDialog):
         self._runner = ThreadedTranscriptionRunner(
             service=self._service,
             audio_source_factory=self._audio_source_factory,
-            device_id=self.device_combo.currentData(),
+            device_id=self._device_id,
         )
         connection_type = Qt.ConnectionType.QueuedConnection
         self._runner.event_received.connect(
@@ -322,6 +325,7 @@ class RecorderWindow(QDialog):
         if self._state is not RecorderState.RECORDING:
             return
         self.set_state(RecorderState.STOPPING)
+        self._set_level_active(False)
         if self._runner is not None:
             self._runner.stop()
         QTimer.singleShot(120, self._mark_transcribing_final)
@@ -336,7 +340,7 @@ class RecorderWindow(QDialog):
         self._mock_timer.stop()
         if self._runner is not None:
             self._runner.cancel()
-        self._level_timer.stop()
+        self._set_level_active(False)
         self.set_state(RecorderState.CANCELLED)
         QTimer.singleShot(120, self.close)
 
@@ -354,18 +358,16 @@ class RecorderWindow(QDialog):
             self._handle_error(event.error or "Transcription failed.")
             return
 
-        self.transcript_edit.setPlainText(self._buffer.apply(event))
-        self.transcript_edit.moveCursor(QTextCursor.MoveOperation.End)
+        self._buffer.apply(event)
         if event.type is TranscriptionEventType.FINAL:
-            self._level_timer.stop()
-            self.level_meter.setValue(0)
+            self._set_level_active(False)
             self._copy_final_text(self._buffer.final_text)
 
     @Slot(str)
     def _handle_error(self, message: str) -> None:
         if self._state is RecorderState.CANCELLED:
             return
-        self._level_timer.stop()
+        self._set_level_active(False)
         self.set_state(RecorderState.ERROR)
         self.status_label.setText(message)
         if self._close_on_success:
@@ -448,7 +450,7 @@ class RecorderWindow(QDialog):
                 _logger.exception("Failed to dispatch close-session notification.")
         self.hide()
         self._mock_timer.stop()
-        self._level_timer.stop()
+        self._set_level_active(False)
         if self._runner is None or not self._runner.is_running():
             self._quit_application()
             return
@@ -477,7 +479,6 @@ class RecorderWindow(QDialog):
 
     def _quit_application(self) -> None:
         self._mock_timer.stop()
-        self._level_timer.stop()
         self.done(QDialog.DialogCode.Accepted)
         app = QApplication.instance()
         if app is not None:
@@ -485,7 +486,16 @@ class RecorderWindow(QDialog):
 
     @Slot(float)
     def _set_level(self, level: float) -> None:
-        self.level_meter.setValue(round(level * 100))
+        if not self._level_active and level >= LEVEL_ACTIVE_THRESHOLD:
+            self._set_level_active(True)
+        elif self._level_active and level < LEVEL_INACTIVE_THRESHOLD:
+            self._set_level_active(False)
+
+    def _set_level_active(self, active: bool) -> None:
+        if active == self._level_active:
+            return
+        self._level_active = active
+        self._apply_level_indicator_style(active=active)
 
     @Slot()
     def _emit_mock_transcription_event(self) -> None:
@@ -506,10 +516,6 @@ class RecorderWindow(QDialog):
             TranscriptionEvent.final(self._service.transcript, item_id=item_id)
         )
 
-    def _advance_mock_level(self) -> None:
-        self._level_value = (self._level_value + 17) % 100
-        self.level_meter.setValue(self._level_value)
-
     def keyPressEvent(self, event: QKeyEvent) -> None:
         if event.key() in {Qt.Key.Key_Return, Qt.Key.Key_Enter}:
             self.stop_recording()
@@ -523,7 +529,7 @@ class RecorderWindow(QDialog):
 
     def closeEvent(self, event: QCloseEvent) -> None:
         self._mock_timer.stop()
-        self._level_timer.stop()
+        self._set_level_active(False)
         if self._runner is not None:
             self._runner.cancel()
             self._runner.join(timeout=RUNNER_JOIN_TIMEOUT_SECONDS)
@@ -543,12 +549,17 @@ def _status_text(state: RecorderState) -> str:
     }[state]
 
 
+STOP_SYMBOL = "■"
+RECORD_SYMBOL = "●"
+BUSY_SYMBOL = "…"
+
+
 def _primary_button_text(state: RecorderState) -> str:
     if state is RecorderState.IDLE:
-        return "Demarrer"
+        return RECORD_SYMBOL
     if state is RecorderState.RECORDING:
-        return "Arreter"
-    return "Traitement"
+        return STOP_SYMBOL
+    return BUSY_SYMBOL
 
 
 async def microphone_audio_source(
