@@ -12,6 +12,7 @@ from pydantic import BaseModel, ConfigDict, Field, ValidationError
 
 APP_ID = "vox-voice-paste"
 CONFIG_FILENAME = "config.toml"
+DEFAULT_TRANSCRIPTION_MODEL = "gpt-realtime-whisper"
 
 
 class ConfigError(RuntimeError):
@@ -24,7 +25,9 @@ class AppConfig(BaseModel):
     config_version: int = Field(default=1, ge=1)
     onboarding_completed: bool = False
     default_input_device_id: str | None = None
-    transcription_model: str = "gpt-4o-mini-transcribe"
+    transcription_model: str = DEFAULT_TRANSCRIPTION_MODEL
+    transcription_language: str | None = None
+    transcription_delay: str = Field(default="low", pattern="^(minimal|low|medium|high|xhigh)$")
 
 
 def default_config_path() -> Path:

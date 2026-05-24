@@ -2,7 +2,7 @@
 
 Source : `specifications/vox_voice_paste_v1_spec_dev_plan.md`  
 Date de creation : 2026-05-23  
-Statut global : En cours - Phase C implementee, validation micro reelle bloquee par PortAudio local  
+Statut global : En cours - Phase D implementee, validations micro/OpenAI reelles restantes  
 Environnement cible : Ubuntu desktop, priorite GNOME / Wayland  
 Environnement local observe : `uv 0.9.17`, `.venv` present, Python `3.14.2`, depot Git initialise
 
@@ -53,6 +53,7 @@ dependencies = [
     "pydantic>=2.12",
     "sounddevice>=0.5",
     "tomli-w>=1.2",
+    "websockets>=15.0",
 ]
 ```
 
@@ -81,15 +82,15 @@ Points a suivre :
 
 ### 3.2 Ajustements recommandes au plan initial
 
-- [ ] Remplacer le modele cible `gpt-realtime-whisper` par une valeur configurable.
-  - Defaut recommande a verifier au moment d'implementation : `gpt-4o-transcribe` ou `gpt-4o-mini-transcribe`.
-  - Raison : la documentation OpenAI Realtime Transcription liste des modeles de transcription tels que `whisper-1`, `gpt-4o-transcribe`, `gpt-4o-mini-transcribe` et variantes recentes, pas `gpt-realtime-whisper`.
+- [x] Remplacer le modele cible `gpt-realtime-whisper` par une valeur configurable.
+  - Verification officielle 2026-05-24 : la documentation Realtime Transcription courante cible `gpt-realtime-whisper`.
+  - Decision : conserver `gpt-realtime-whisper` comme defaut configurable.
   - Source officielle : https://platform.openai.com/docs/guides/realtime-transcription
 - [ ] Ne pas faire dependre la copie presse-papiers uniquement de `QClipboard` sans validation Wayland.
   - Sous Linux, la persistance du contenu apres fermeture immediate du processus doit etre testee.
   - Prevoir un `ClipboardService` capable d'utiliser Qt, `wl-copy` sur Wayland, et `xclip` ou `xsel` sur X11 selon disponibilite.
 - [ ] Ajouter un verrou de session pour empecher deux dictees concurrentes.
-- [ ] Ajouter une strategie de timeout explicite pour finalisation OpenAI.
+- [x] Ajouter une strategie de timeout explicite pour finalisation OpenAI.
 - [ ] Ajouter une commande dev `--mock` utilisable avec `--record-and-copy`.
 - [ ] Ajouter une commande dev pour tester le clipboard sans OpenAI.
 - [x] Ajouter des tests sans micro reel, sans keyring reel et sans reseau.
@@ -217,7 +218,7 @@ packaging/
 Tracking :
 
 - [x] Valider que cette structure reste proportionnee au projet.
-- [ ] Creer d'abord les interfaces et mocks avant les implementations systeme.
+- [x] Creer d'abord les interfaces et mocks avant les implementations systeme.
 - [ ] Eviter les imports directs entre UI et OpenAI/audio bas niveau.
 
 ---
@@ -229,7 +230,8 @@ Tracking :
 - [ ] `PySide6` - interface desktop Qt.
 - [x] `sounddevice` - capture micro.
 - [x] `numpy` - traitement audio et RMS.
-- [ ] `openai` ou `websockets` - client Realtime Transcription, a choisir apres prototype.
+- [x] `openai` ou `websockets` - client Realtime Transcription, a choisir apres prototype.
+  - Decision : `websockets`, pour garder le protocole Realtime explicite et testable sans reseau.
 - [x] `platformdirs` - chemins de configuration utilisateur.
 - [x] `pydantic` - validation config.
 - [x] `PyYAML` ou format TOML natif - persistance config.
@@ -327,26 +329,26 @@ Critere d'acceptation :
 
 Objectif : avoir une interface de transcription testable, puis brancher OpenAI.
 
-- [ ] `D-001` `P0` Creer interface `TranscriptionService`.
-- [ ] `D-002` `P0` Creer types d'evenements partial/final/error.
-- [ ] `D-003` `P0` Implementer `MockTranscriptionService`.
-- [ ] `D-004` `P0` Implementer `TranscriptBuffer`.
-- [ ] `D-005` `P0` Verifier officiellement les modeles Realtime Transcription disponibles avant implementation.
-- [ ] `D-006` `P0` Choisir client `openai` SDK ou `websockets`.
-- [ ] `D-007` `P0` Ouvrir session Realtime Transcription.
-- [ ] `D-008` `P0` Configurer audio input PCM 24 kHz.
-- [ ] `D-009` `P0` Streamer chunks audio.
-- [ ] `D-010` `P0` Recevoir deltas et completions.
-- [ ] `D-011` `P0` Finaliser explicitement a l'arret utilisateur.
-- [ ] `D-012` `P0` Gerer timeouts, erreurs reseau et erreurs API.
+- [x] `D-001` `P0` Creer interface `TranscriptionService`.
+- [x] `D-002` `P0` Creer types d'evenements partial/final/error.
+- [x] `D-003` `P0` Implementer `MockTranscriptionService`.
+- [x] `D-004` `P0` Implementer `TranscriptBuffer`.
+- [x] `D-005` `P0` Verifier officiellement les modeles Realtime Transcription disponibles avant implementation.
+- [x] `D-006` `P0` Choisir client `openai` SDK ou `websockets`.
+- [x] `D-007` `P0` Ouvrir session Realtime Transcription.
+- [x] `D-008` `P0` Configurer audio input PCM 24 kHz.
+- [x] `D-009` `P0` Streamer chunks audio.
+- [x] `D-010` `P0` Recevoir deltas et completions.
+- [x] `D-011` `P0` Finaliser explicitement a l'arret utilisateur.
+- [x] `D-012` `P0` Gerer timeouts, erreurs reseau et erreurs API.
 - [ ] `D-013` `P1` Ajouter logprobs ou score de confiance seulement si utile et sans surcharger V1.0.
 
 Critere d'acceptation :
 
 - [ ] Le mode mock affiche une transcription progressive sans cle OpenAI.
 - [ ] Le mode reel transcrit une phrase courte.
-- [ ] Aucun test unitaire n'appelle OpenAI.
-- [ ] Le modele utilise est configurable.
+- [x] Aucun test unitaire n'appelle OpenAI.
+- [x] Le modele utilise est configurable.
 
 ### Phase E - Fenetre de dictee
 
@@ -532,16 +534,16 @@ Critere d'acceptation release :
 
 ### Epic Transcription
 
-- [ ] `TR-001` `P0` Interface `TranscriptionService`.
-- [ ] `TR-002` `P0` Service mock.
-- [ ] `TR-003` `P0` Session OpenAI Realtime.
-- [ ] `TR-004` `P0` Configuration transcription.
-- [ ] `TR-005` `P0` Streaming chunks audio.
-- [ ] `TR-006` `P0` Reception deltas.
-- [ ] `TR-007` `P0` Reception transcript final.
-- [ ] `TR-008` `P0` Timeouts.
-- [ ] `TR-009` `P0` Erreurs API.
-- [ ] `TR-010` `P0` Verification officielle modeles et events avant branchement.
+- [x] `TR-001` `P0` Interface `TranscriptionService`.
+- [x] `TR-002` `P0` Service mock.
+- [x] `TR-003` `P0` Session OpenAI Realtime.
+- [x] `TR-004` `P0` Configuration transcription.
+- [x] `TR-005` `P0` Streaming chunks audio.
+- [x] `TR-006` `P0` Reception deltas.
+- [x] `TR-007` `P0` Reception transcript final.
+- [x] `TR-008` `P0` Timeouts.
+- [x] `TR-009` `P0` Erreurs API.
+- [x] `TR-010` `P0` Verification officielle modeles et events avant branchement.
 
 ### Epic UI
 
@@ -596,9 +598,9 @@ Critere d'acceptation release :
 - [x] Absence de cle OpenAI.
 - [x] Presence de cle OpenAI sans affichage.
 - [x] Masquage secrets dans logs.
-- [ ] Normalisation du transcript final.
+- [x] Normalisation du transcript final.
 - [ ] Refus de copier un texte vide.
-- [ ] Aggregation des deltas.
+- [x] Aggregation des deltas.
 - [ ] State machine.
 - [x] Diagnostic sans donnees sensibles.
 - [ ] Verrou anti-double-dictee.
