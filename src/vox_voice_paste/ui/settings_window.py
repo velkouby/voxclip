@@ -12,6 +12,7 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
+from vox_voice_paste.config import default_config_path, load_config, save_config
 from vox_voice_paste.desktop import (
     ClipboardError,
     ClipboardService,
@@ -19,7 +20,6 @@ from vox_voice_paste.desktop import (
     SystemClipboardService,
     set_ubuntu_shortcut,
 )
-from vox_voice_paste.config import default_config_path, load_config, save_config
 from vox_voice_paste.security import (
     KeyringSecretService,
     OpenAIHTTPKeyValidator,
@@ -51,33 +51,33 @@ class SettingsWindow(QDialog):
         resolved_config_path = config_path or default_config_path()
         shortcut_value = startup_shortcut or self._config.ubuntu_shortcut
         self._config.ubuntu_shortcut = shortcut_value
-        self.setWindowTitle("Vox Voice Paste - Parametres")
+        self.setWindowTitle("VoxClip - Settings")
         self.setMinimumWidth(520)
 
-        self.key_status = QLabel("Cle OpenAI stockee dans le keyring systeme.")
-        self.configure_key_button = QPushButton("Configurer la cle OpenAI")
+        self.key_status = QLabel("OpenAI key is stored in the system keyring.")
+        self.configure_key_button = QPushButton("Configure OpenAI key")
         self.configure_key_button.clicked.connect(self.configure_openai_key)
 
         self.shortcut_command = QLineEdit(SHORTCUT_COMMAND)
         self.shortcut_command.setReadOnly(True)
-        self.copy_shortcut_button = QPushButton("Copier la commande du raccourci")
+        self.copy_shortcut_button = QPushButton("Copy shortcut command")
         self.copy_shortcut_button.clicked.connect(self.copy_shortcut_command)
         self.shortcut_input = QLineEdit(shortcut_value)
         self.shortcut_input.setPlaceholderText(RECOMMENDED_SHORTCUT)
-        self.install_shortcut_button = QPushButton("Installer le raccourci GNOME")
+        self.install_shortcut_button = QPushButton("Install GNOME shortcut")
         self.install_shortcut_button.clicked.connect(self.apply_ubuntu_shortcut)
         self.shortcut_status = QLabel()
 
-        close_button = QPushButton("Fermer")
+        close_button = QPushButton("Close")
         close_button.clicked.connect(self.accept)
 
         layout = QVBoxLayout()
-        layout.addWidget(QLabel("Vox Voice Paste"))
+        layout.addWidget(QLabel("VoxClip"))
         layout.addWidget(QLabel(f"Configuration: {resolved_config_path}"))
-        layout.addWidget(QLabel(f"Commande raccourci: {SHORTCUT_COMMAND}"))
-        layout.addWidget(QLabel(f"Raccourci recommande: {RECOMMENDED_SHORTCUT}"))
-        layout.addWidget(QLabel("Si Ctrl+Alt+N colle déjà, choisissez un autre raccourci."))
-        layout.addWidget(QLabel("Raccourci GNOME actif:"))
+        layout.addWidget(QLabel(f"Shortcut command: {SHORTCUT_COMMAND}"))
+        layout.addWidget(QLabel(f"Recommended shortcut: {RECOMMENDED_SHORTCUT}"))
+        layout.addWidget(QLabel("If Ctrl+Alt+N is already used, choose another shortcut."))
+        layout.addWidget(QLabel("Active GNOME shortcut:"))
         layout.addWidget(self.shortcut_input)
         layout.addWidget(self.install_shortcut_button)
         layout.addWidget(self.shortcut_command)
@@ -96,9 +96,9 @@ class SettingsWindow(QDialog):
             parent=self,
         )
         if dialog.exec() == QDialog.DialogCode.Accepted:
-            self.key_status.setText("Cle OpenAI enregistree.")
+            self.key_status.setText("OpenAI key saved.")
         else:
-            self.key_status.setText("Cle OpenAI non modifiee.")
+            self.key_status.setText("OpenAI key unchanged.")
 
     @Slot()
     def copy_shortcut_command(self) -> None:
@@ -107,13 +107,13 @@ class SettingsWindow(QDialog):
         except ClipboardError as exc:
             self.shortcut_status.setText(str(exc))
             return
-        self.shortcut_status.setText("Commande copiee.")
+        self.shortcut_status.setText("Command copied.")
 
     @Slot()
     def apply_ubuntu_shortcut(self) -> None:
         shortcut = self.shortcut_input.text().strip()
         if not shortcut:
-            self.shortcut_status.setText("Le raccourci ne peut pas etre vide.")
+            self.shortcut_status.setText("Shortcut must not be empty.")
             return
         try:
             set_ubuntu_shortcut(shortcut=shortcut, command=SHORTCUT_COMMAND)
@@ -122,4 +122,4 @@ class SettingsWindow(QDialog):
             return
         self._config.ubuntu_shortcut = shortcut
         save_config(self._config, self._config_path)
-        self.shortcut_status.setText(f"Raccourci GNOME configure: {shortcut}")
+        self.shortcut_status.setText(f"GNOME shortcut configured: {shortcut}")

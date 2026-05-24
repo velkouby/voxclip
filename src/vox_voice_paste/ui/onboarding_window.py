@@ -44,7 +44,7 @@ class OnboardingWindow(QDialog):
         self._clipboard = clipboard_service or SystemClipboardService()
         self._config = load_config(config_path)
 
-        self.setWindowTitle("Vox Voice Paste - Configuration")
+        self.setWindowTitle("VoxClip - Setup")
         self.setMinimumWidth(560)
         self._build_ui()
         self._load_devices()
@@ -59,11 +59,11 @@ class OnboardingWindow(QDialog):
         self.pages.addWidget(self._finish_page())
         self.pages.currentChanged.connect(lambda _: self._sync_buttons())
 
-        self.back_button = QPushButton("Retour")
+        self.back_button = QPushButton("Back")
         self.back_button.clicked.connect(self.back)
-        self.next_button = QPushButton("Suivant")
+        self.next_button = QPushButton("Next")
         self.next_button.clicked.connect(self.next)
-        self.finish_button = QPushButton("Terminer")
+        self.finish_button = QPushButton("Finish")
         self.finish_button.clicked.connect(self.finish)
 
         buttons = QHBoxLayout()
@@ -80,9 +80,9 @@ class OnboardingWindow(QDialog):
     def _welcome_page(self) -> QWidget:
         page = QWidget()
         layout = QVBoxLayout()
-        layout.addWidget(QLabel("Bienvenue dans Vox Voice Paste"))
-        layout.addWidget(QLabel("La dictee V1 copie le texte final, puis vous collez avec Ctrl+V."))
-        layout.addWidget(QLabel("La transcription reelle envoie l'audio a l'API OpenAI."))
+        layout.addWidget(QLabel("Welcome to VoxClip"))
+        layout.addWidget(QLabel("VoxClip copies the final transcript; you paste it with Ctrl+V."))
+        layout.addWidget(QLabel("Live transcription sends microphone audio to the OpenAI API."))
         page.setLayout(layout)
         return page
 
@@ -90,13 +90,13 @@ class OnboardingWindow(QDialog):
         page = QWidget()
         self.key_input = QLineEdit()
         self.key_input.setEchoMode(QLineEdit.EchoMode.Password)
-        self.key_input.setPlaceholderText("Cle API OpenAI")
-        self.key_status = QLabel("Cle non verifiee")
-        self.store_key_button = QPushButton("Enregistrer la cle")
+        self.key_input.setPlaceholderText("OpenAI API key")
+        self.key_status = QLabel("Key not verified")
+        self.store_key_button = QPushButton("Save key")
         self.store_key_button.clicked.connect(self.store_key)
 
         layout = QVBoxLayout()
-        layout.addWidget(QLabel("Cle OpenAI"))
+        layout.addWidget(QLabel("OpenAI key"))
         layout.addWidget(self.key_input)
         layout.addWidget(self.store_key_button)
         layout.addWidget(self.key_status)
@@ -119,14 +119,14 @@ class OnboardingWindow(QDialog):
         page = QWidget()
         self.shortcut_command = QLineEdit(SHORTCUT_COMMAND)
         self.shortcut_command.setReadOnly(True)
-        self.copy_shortcut_button = QPushButton("Copier la commande")
+        self.copy_shortcut_button = QPushButton("Copy command")
         self.copy_shortcut_button.clicked.connect(self.copy_shortcut_command)
         self.shortcut_status = QLabel()
 
         layout = QVBoxLayout()
-        layout.addWidget(QLabel("Raccourci Ubuntu"))
-        layout.addWidget(QLabel("Configurez un raccourci personnalise avec cette commande."))
-        layout.addWidget(QLabel(f"Raccourci recommande : {RECOMMENDED_SHORTCUT}"))
+        layout.addWidget(QLabel("Ubuntu shortcut"))
+        layout.addWidget(QLabel("Create a custom keyboard shortcut with this command."))
+        layout.addWidget(QLabel(f"Recommended shortcut: {RECOMMENDED_SHORTCUT}"))
         layout.addWidget(self.shortcut_command)
         layout.addWidget(self.copy_shortcut_button)
         layout.addWidget(self.shortcut_status)
@@ -136,7 +136,7 @@ class OnboardingWindow(QDialog):
     def _finish_page(self) -> QWidget:
         page = QWidget()
         layout = QVBoxLayout()
-        layout.addWidget(QLabel("Configuration terminee"))
+        layout.addWidget(QLabel("Setup complete"))
         page.setLayout(layout)
         return page
 
@@ -148,10 +148,10 @@ class OnboardingWindow(QDialog):
             devices = []
             self.audio_status.setText(str(exc))
         else:
-            self.audio_status.setText("Selectionnez le microphone a utiliser.")
+            self.audio_status.setText("Select the microphone to use.")
 
         if not devices:
-            self.microphone_combo.addItem("Micro systeme par defaut", None)
+            self.microphone_combo.addItem("System default microphone", None)
             return
 
         for device in devices:
@@ -161,7 +161,7 @@ class OnboardingWindow(QDialog):
     def store_key(self) -> None:
         value = self.key_input.text().strip()
         if not value:
-            self.key_status.setText("Cle vide.")
+            self.key_status.setText("Key is empty.")
             return
         dialog = OpenAIKeyDialog(
             secret_service=self._secrets,
@@ -172,7 +172,7 @@ class OnboardingWindow(QDialog):
         dialog.save_key()
         if dialog.result() == QDialog.DialogCode.Accepted:
             self.key_input.clear()
-            self.key_status.setText("Cle valide et enregistree dans le keyring.")
+            self.key_status.setText("Key verified and stored in the keyring.")
         else:
             self.key_status.setText(dialog.status_label.text())
 
@@ -183,7 +183,7 @@ class OnboardingWindow(QDialog):
         except ClipboardError as exc:
             self.shortcut_status.setText(str(exc))
             return
-        self.shortcut_status.setText("Commande copiee.")
+        self.shortcut_status.setText("Command copied.")
 
     @Slot()
     def back(self) -> None:
@@ -213,5 +213,5 @@ class OnboardingWindow(QDialog):
 
 
 def _device_label(device: AudioInputDevice) -> str:
-    marker = " (defaut)" if device.is_default else ""
+    marker = " (default)" if device.is_default else ""
     return f"{device.name}{marker}"

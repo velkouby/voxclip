@@ -47,7 +47,7 @@ def test_recorder_window_mock_transcription_reaches_success(qtbot) -> None:
 
     assert window._buffer.final_text == "bonjour monde"
     assert clipboard.text == "bonjour monde"
-    assert notifications.notifications[-1].body == "Texte copie. Faites Ctrl+V pour coller."
+    assert notifications.notifications[-1].body == "Text copied. Press Ctrl+V to paste."
 
 
 def test_recorder_window_closes_on_success_when_requested(qtbot) -> None:

@@ -11,11 +11,15 @@ GSETTINGS_SCHEMA = "org.gnome.settings-daemon.plugins.media-keys"
 CUSTOM_KEY_SCHEMA_PREFIX = "org.gnome.settings-daemon.plugins.media-keys.custom-keybinding"
 CUSTOM_KEY_BINDINGS_KEY = "custom-keybindings"
 CUSTOM_KEY_BASE_PATH = "/org/gnome/settings-daemon/plugins/media-keys/custom-keybindings/"
-SHORTCUT_LABEL = "Vox Voice Paste"
-MANAGED_SHORTCUT_PATH = f"{CUSTOM_KEY_BASE_PATH}vox-voice-paste/"
-SHORTCUT_EXECUTABLE = "/usr/bin/vox-voice-paste"
+SHORTCUT_LABEL = "VoxClip"
+LEGACY_SHORTCUT_LABELS = {"Vox Voice Paste"}
+MANAGED_SHORTCUT_PATH = f"{CUSTOM_KEY_BASE_PATH}voxclip/"
+LEGACY_MANAGED_SHORTCUT_PATHS = {f"{CUSTOM_KEY_BASE_PATH}vox-voice-paste/"}
+SHORTCUT_EXECUTABLE = "/usr/bin/voxclip"
 DEFAULT_SHORTCUT_COMMAND = f"{SHORTCUT_EXECUTABLE} --record-and-copy"
-AUTOSTART_SHORTCUT_NAME = "vox-voice-paste-shortcut.desktop"
+LEGACY_SHORTCUT_COMMANDS = {"/usr/bin/vox-voice-paste --record-and-copy"}
+AUTOSTART_SHORTCUT_NAME = "voxclip-shortcut.desktop"
+LEGACY_AUTOSTART_SHORTCUT_NAMES = {"vox-voice-paste-shortcut.desktop"}
 AUTOSTART_SHORTCUT_FILE = (
     Path.home() / ".config" / "autostart" / AUTOSTART_SHORTCUT_NAME
 )
@@ -40,6 +44,8 @@ def set_ubuntu_shortcut(
     _ensure_gsettings_available()
     normalized = _normalize_shortcut(shortcut)
     paths = _load_custom_binding_paths()
+    shortcut_commands = {command, *LEGACY_SHORTCUT_COMMANDS}
+    shortcut_labels = {label, *LEGACY_SHORTCUT_LABELS}
 
     target_path = managed_path
     if target_path not in paths:
@@ -50,9 +56,11 @@ def set_ubuntu_shortcut(
         for path in paths
         if path != target_path
         and (
-            _read_schema_value(f"{CUSTOM_KEY_SCHEMA_PREFIX}:{path}", "command")
-            == command
-            or _read_schema_value(f"{CUSTOM_KEY_SCHEMA_PREFIX}:{path}", "name") == label
+            path in LEGACY_MANAGED_SHORTCUT_PATHS
+            or _read_schema_value(f"{CUSTOM_KEY_SCHEMA_PREFIX}:{path}", "command")
+            in shortcut_commands
+            or _read_schema_value(f"{CUSTOM_KEY_SCHEMA_PREFIX}:{path}", "name")
+            in shortcut_labels
             or _read_schema_value(f"{CUSTOM_KEY_SCHEMA_PREFIX}:{path}", "binding")
             == normalized
             or _is_empty_binding(f"{CUSTOM_KEY_SCHEMA_PREFIX}:{path}")
@@ -91,8 +99,8 @@ def install_shortcut_autostart_entry() -> Path | None:
     desktop_payload = (
         "[Desktop Entry]\n"
         "Type=Application\n"
-        "Name=Vox Voice Paste - Shortcut sync\n"
-        "Comment=Re-apply Vox Voice Paste shortcut on login\n"
+        "Name=VoxClip - Shortcut sync\n"
+        "Comment=Re-apply VoxClip shortcut on login\n"
         f"Exec={AUTOSTART_SHORTCUT_COMMAND}\n"
         "OnlyShowIn=GNOME;\n"
         "NoDisplay=true\n"
@@ -114,6 +122,8 @@ def remove_shortcut_autostart_entry() -> None:
     """Remove user autostart file created for shortcut relinking."""
     try:
         AUTOSTART_SHORTCUT_FILE.unlink(missing_ok=True)
+        for legacy_name in LEGACY_AUTOSTART_SHORTCUT_NAMES:
+            (AUTOSTART_SHORTCUT_FILE.parent / legacy_name).unlink(missing_ok=True)
     except OSError as exc:
         raise ShortcutInstallError(
             f"Failed to remove GNOME shortcut autostart entry: {exc}"
@@ -125,18 +135,23 @@ def remove_ubuntu_shortcut(
     command: str = DEFAULT_SHORTCUT_COMMAND,
     managed_path: str = MANAGED_SHORTCUT_PATH,
 ) -> list[str]:
-    """Remove Vox Voice Paste bindings from custom-keybindings and keep list consistent."""
+    """Remove VoxClip bindings from custom-keybindings and keep list consistent."""
     if not _is_gnome_desktop():
         return []
 
     paths = _load_custom_binding_paths()
+    shortcut_commands = {command, *LEGACY_SHORTCUT_COMMANDS}
+    shortcut_labels = {SHORTCUT_LABEL, *LEGACY_SHORTCUT_LABELS}
+    shortcut_paths = {managed_path, *LEGACY_MANAGED_SHORTCUT_PATHS}
 
     target_paths = [
         path
         for path in paths
-        if path == managed_path
-        or _read_schema_value(f"{CUSTOM_KEY_SCHEMA_PREFIX}:{path}", "command") == command
-        or _read_schema_value(f"{CUSTOM_KEY_SCHEMA_PREFIX}:{path}", "name") == SHORTCUT_LABEL
+        if path in shortcut_paths
+        or _read_schema_value(f"{CUSTOM_KEY_SCHEMA_PREFIX}:{path}", "command")
+        in shortcut_commands
+        or _read_schema_value(f"{CUSTOM_KEY_SCHEMA_PREFIX}:{path}", "name")
+        in shortcut_labels
     ]
 
     for path in target_paths:

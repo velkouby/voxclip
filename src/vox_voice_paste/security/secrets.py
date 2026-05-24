@@ -1,10 +1,12 @@
 from __future__ import annotations
 
+import contextlib
 from typing import Protocol
 
 import keyring
 
-KEYRING_SERVICE_NAME = "vox-voice-paste"
+KEYRING_SERVICE_NAME = "voxclip"
+LEGACY_KEYRING_SERVICE_NAMES = ("vox-voice-paste",)
 OPENAI_API_KEY_SECRET = "openai-api-key"
 
 
@@ -26,7 +28,18 @@ class KeyringSecretService:
 
     def get_secret(self, name: str) -> str | None:
         try:
-            return keyring.get_password(self._service_name, name)
+            value = keyring.get_password(self._service_name, name)
+            if value is not None or self._service_name != KEYRING_SERVICE_NAME:
+                return value
+
+            for legacy_service_name in LEGACY_KEYRING_SERVICE_NAMES:
+                value = keyring.get_password(legacy_service_name, name)
+                if value is None:
+                    continue
+                with contextlib.suppress(Exception):
+                    keyring.set_password(self._service_name, name, value)
+                return value
+            return None
         except Exception as exc:
             raise SecretError("Secret backend is unavailable") from exc
 
@@ -37,13 +50,19 @@ class KeyringSecretService:
             raise SecretError("Secret backend is unavailable") from exc
 
     def delete_secret(self, name: str) -> None:
-        try:
-            keyring.delete_password(self._service_name, name)
-        except keyring.errors.PasswordDeleteError:
-            return
-        except Exception as exc:
-            raise SecretError("Secret backend is unavailable") from exc
-
+        service_names = [self._service_name]
+        if self._service_name == KEYRING_SERVICE_NAME:
+            service_names.extend(LEGACY_KEYRING_SERVICE_NAMES)
+        failures = []
+        for service_name in service_names:
+            try:
+                keyring.delete_password(service_name, name)
+            except keyring.errors.PasswordDeleteError:
+                continue
+            except Exception as exc:
+                failures.append(exc)
+        if failures:
+            raise SecretError("Secret backend is unavailable") from failures[0]
 
 class InMemorySecretService:
     def __init__(self, initial: dict[str, str] | None = None) -> None:

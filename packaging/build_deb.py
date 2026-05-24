@@ -10,7 +10,7 @@ import tomllib
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
-PACKAGE_NAME = "vox-voice-paste"
+PACKAGE_NAME = "voxclip"
 INSTALL_DIR = Path("opt") / PACKAGE_NAME
 
 
@@ -87,10 +87,10 @@ def _populate_package_root(
 
     bin_dir = package_root / "usr/bin"
     bin_dir.mkdir(parents=True, exist_ok=True)
-    launcher = bin_dir / "vox-voice-paste"
+    launcher = bin_dir / "voxclip"
     launcher.write_text(
         "#!/bin/sh\n"
-        "exec /opt/vox-voice-paste/venv/bin/python -m vox_voice_paste \"$@\"\n",
+        "exec /opt/voxclip/venv/bin/python -m vox_voice_paste \"$@\"\n",
         encoding="utf-8",
     )
     launcher.chmod(launcher.stat().st_mode | stat.S_IXUSR | stat.S_IXGRP | stat.S_IXOTH)
@@ -98,21 +98,21 @@ def _populate_package_root(
     applications_dir = package_root / "usr/share/applications"
     applications_dir.mkdir(parents=True, exist_ok=True)
     shutil.copy2(
-        ROOT / "packaging/desktop/vox-voice-paste.desktop",
-        applications_dir / "vox-voice-paste.desktop",
+        ROOT / "packaging/desktop/voxclip.desktop",
+        applications_dir / "voxclip.desktop",
     )
 
     icon_dir = package_root / "usr/share/icons/hicolor/scalable/apps"
     icon_dir.mkdir(parents=True, exist_ok=True)
     shutil.copy2(
-        ROOT / "packaging/icons/vox-voice-paste.svg",
-        icon_dir / "vox-voice-paste.svg",
+        ROOT / "packaging/icons/voxclip.svg",
+        icon_dir / "voxclip.svg",
     )
 
     debian_dir = package_root / "DEBIAN"
     debian_dir.mkdir(parents=True, exist_ok=True)
     control = (ROOT / "packaging/debian/control").read_text(encoding="utf-8")
-    control = control.replace("Version: 0.1.0", f"Version: {version}")
+    control = control.replace("Version: @VERSION@", f"Version: {version}")
     control = control.replace("Architecture: @ARCH@", f"Architecture: {architecture}")
     (debian_dir / "control").write_text(control, encoding="utf-8")
 
@@ -181,13 +181,13 @@ def _install_application_source(venv_dir: Path, version: str) -> None:
         shutil.rmtree(package_target)
     shutil.copytree(ROOT / "src/vox_voice_paste", package_target)
 
-    dist_info = site_packages / f"voice2paste-{version}.dist-info"
+    dist_info = site_packages / f"voxclip-{version}.dist-info"
     if dist_info.exists():
         shutil.rmtree(dist_info)
     dist_info.mkdir()
     (dist_info / "METADATA").write_text(
         "Metadata-Version: 2.1\n"
-        "Name: voice2paste\n"
+        "Name: voxclip\n"
         f"Version: {version}\n",
         encoding="utf-8",
     )

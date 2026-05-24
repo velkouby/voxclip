@@ -10,7 +10,8 @@ import tomli_w
 from platformdirs import user_config_path
 from pydantic import BaseModel, ConfigDict, Field, ValidationError
 
-APP_ID = "vox-voice-paste"
+APP_ID = "voxclip"
+LEGACY_APP_IDS = ("vox-voice-paste",)
 CONFIG_FILENAME = "config.toml"
 DEFAULT_TRANSCRIPTION_MODEL = "gpt-realtime-whisper"
 DEFAULT_UBUNTU_SHORTCUT = "Ctrl+Alt+N"
@@ -36,8 +37,15 @@ def default_config_path() -> Path:
     return user_config_path(APP_ID, appauthor=False) / CONFIG_FILENAME
 
 
+def legacy_config_paths() -> list[Path]:
+    return [
+        user_config_path(legacy_app_id, appauthor=False) / CONFIG_FILENAME
+        for legacy_app_id in LEGACY_APP_IDS
+    ]
+
+
 def load_config(path: Path | None = None) -> AppConfig:
-    config_path = path or default_config_path()
+    config_path = _config_path_for_load(path)
     if not config_path.exists():
         return AppConfig()
 
@@ -50,6 +58,21 @@ def load_config(path: Path | None = None) -> AppConfig:
         raise ConfigError(f"Invalid TOML config file: {config_path}") from exc
 
     return parse_config(raw_config, source=config_path)
+
+
+def _config_path_for_load(path: Path | None = None) -> Path:
+    if path is not None:
+        return path
+
+    config_path = default_config_path()
+    if config_path.exists():
+        return config_path
+
+    for legacy_config_path in legacy_config_paths():
+        if legacy_config_path.exists():
+            return legacy_config_path
+
+    return config_path
 
 
 def parse_config(raw_config: dict[str, Any], *, source: Path | None = None) -> AppConfig:

@@ -34,3 +34,17 @@ def test_invalid_config_raises_config_error(tmp_path) -> None:
     with pytest.raises(ConfigError):
         load_config(config_path)
 
+
+def test_load_config_falls_back_to_legacy_app_id(monkeypatch, tmp_path) -> None:
+    def fake_user_config_path(app_id: str, *, appauthor: bool = False):
+        del appauthor
+        return tmp_path / app_id
+
+    legacy_config_path = tmp_path / "vox-voice-paste" / "config.toml"
+    legacy_config_path.parent.mkdir()
+    legacy_config_path.write_text("onboarding_completed = true\n", encoding="utf-8")
+    monkeypatch.setattr("vox_voice_paste.config.user_config_path", fake_user_config_path)
+
+    config = load_config()
+
+    assert config.onboarding_completed is True

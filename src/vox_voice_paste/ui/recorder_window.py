@@ -210,7 +210,7 @@ class RecorderWindow(QDialog):
         return self._state
 
     def _build_ui(self) -> None:
-        self.setWindowTitle("Vox Voice Paste")
+        self.setWindowTitle("VoxClip")
         self.setFixedSize(180, 200)
 
         self.level_indicator = QLabel()
@@ -373,7 +373,7 @@ class RecorderWindow(QDialog):
         if self._close_on_success:
             # Headless/record-and-copy mode: surface the error via the OS
             # notifier and close the session so the next Ctrl+Alt+N can run.
-            self._close_session(notification=("Vox Voice Paste", message))
+            self._close_session(notification=("VoxClip", message))
 
     def _copy_final_text(self, text: str) -> None:
         self.set_state(RecorderState.COPYING)
@@ -384,8 +384,8 @@ class RecorderWindow(QDialog):
             return
 
         self._notifications.notify(
-            "Vox Voice Paste",
-            "Texte copie. Faites Ctrl+V pour coller.",
+            "VoxClip",
+            "Text copied. Press Ctrl+V to paste.",
         )
         self.set_state(RecorderState.SUCCESS)
         if self._close_on_success:
@@ -425,7 +425,7 @@ class RecorderWindow(QDialog):
         )
         self._close_session(
             notification=(
-                "Vox Voice Paste",
+                "VoxClip",
                 "Transcription incomplete: no final text received.",
             )
         )
@@ -538,14 +538,14 @@ class RecorderWindow(QDialog):
 
 def _status_text(state: RecorderState) -> str:
     return {
-        RecorderState.IDLE: "Pret a enregistrer",
-        RecorderState.RECORDING: "Enregistrement en cours",
-        RecorderState.STOPPING: "Arret en cours",
-        RecorderState.TRANSCRIBING_FINAL: "Finalisation de la transcription",
-        RecorderState.COPYING: "Copie en cours",
-        RecorderState.SUCCESS: "Transcription terminee",
-        RecorderState.ERROR: "Erreur",
-        RecorderState.CANCELLED: "Dictee annulee",
+        RecorderState.IDLE: "Ready to record",
+        RecorderState.RECORDING: "Recording",
+        RecorderState.STOPPING: "Stopping",
+        RecorderState.TRANSCRIBING_FINAL: "Finalizing transcription",
+        RecorderState.COPYING: "Copying",
+        RecorderState.SUCCESS: "Transcription complete",
+        RecorderState.ERROR: "Error",
+        RecorderState.CANCELLED: "Dictation cancelled",
     }[state]
 
 

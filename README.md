@@ -1,242 +1,238 @@
-# Vox Voice Paste
+# VoxClip
 
-Vox Voice Paste est une application desktop Ubuntu pour dicter du texte, copier
-la transcription finale dans le presse-papiers, puis coller manuellement avec
-`Ctrl+V`.
+VoxClip is a small Ubuntu desktop dictation app. It opens a compact recorder,
+streams microphone audio to OpenAI Realtime transcription, copies the final
+transcript to the clipboard, and lets you paste it manually with `Ctrl+V`.
 
-La V1 ne simule pas `Ctrl+V` automatiquement. Ce choix evite les problemes de
-fiabilite sous GNOME / Wayland.
+VoxClip does not simulate keystrokes or paste automatically. This keeps the app
+reliable on GNOME and Wayland, where automatic paste injection is fragile.
 
-## Etat actuel
+## How It Works
 
-Le flux principal est cable :
+1. Put the cursor in the text field where you want to dictate.
+2. Launch VoxClip, usually with the configured Ubuntu keyboard shortcut.
+3. Speak while the recorder window is open.
+4. Press `Enter` or click the stop button to finish.
+5. VoxClip copies the final transcript to the clipboard.
+6. Paste it yourself with `Ctrl+V`.
 
-- lancement via `vox-voice-paste --record-and-copy` ;
-- fenetre de dictee PySide6 ;
-- capture micro via PortAudio / `sounddevice` ;
-- transcription OpenAI Realtime ;
-- mode mock sans cle OpenAI ;
-- copie presse-papiers avec fallback `wl-copy`, `xclip`, `xsel`, puis Qt ;
-- notification de succes via `notify-send` ;
-- onboarding et fenetre de parametres ;
-- stockage de la cle OpenAI dans le keyring systeme ;
-- diagnostic sans secret ni transcript ;
-- build `.deb` local.
+`Escape` cancels the current dictation without changing the clipboard. Empty
+transcripts are not copied.
 
-Validations automatiques locales :
+## Requirements
+
+- Ubuntu with a desktop session, preferably GNOME on Wayland or X11.
+- Python 3.12 or newer, provided by the system for the Debian package.
+- A working microphone.
+- An OpenAI API key for real transcription.
+- Clipboard helpers installed by the Debian package dependencies:
+  `wl-clipboard`, `xclip`, or `xsel`.
+
+## Install From A Debian Release
+
+The recommended installation path is the prebuilt Debian package attached to a
+GitHub release. For release `v2.0.0`, the expected asset name is:
+
+```text
+voxclip_2.0.0_amd64.deb
+```
+
+Download it from the GitHub release page, or use the GitHub CLI from a clone of
+the repository:
+
+```bash
+gh release download v2.0.0 --pattern "voxclip_2.0.0_amd64.deb" --clobber
+```
+
+If you are not inside a clone, pass the repository explicitly:
+
+```bash
+gh release download v2.0.0 \
+  --repo velkouby/voclip \
+  --pattern "voxclip_2.0.0_amd64.deb" \
+  --clobber
+```
+
+You can also download the asset directly with `curl`:
+
+```bash
+curl -LO "https://github.com/velkouby/voclip/releases/download/v2.0.0/voxclip_2.0.0_amd64.deb"
+```
+
+Install the package:
+
+```bash
+sudo apt update
+sudo apt install ./voxclip_2.0.0_amd64.deb
+```
+
+Then open the settings window:
+
+```bash
+voxclip --settings
+```
+
+To uninstall:
+
+```bash
+sudo apt remove voxclip
+```
+
+To also remove the managed GNOME shortcut and autostart entry:
+
+```bash
+voxclip --remove-ubuntu-shortcut
+```
+
+User configuration and the OpenAI key are intentionally left in the user config
+directory and system keyring. To reset them manually:
+
+```bash
+rm -rf ~/.config/voxclip
+voxclip --delete-openai-key
+```
+
+## Configure The OpenAI Key
+
+The OpenAI API key is never written to `config.toml`. VoxClip stores it in the
+system keyring.
+
+You can set it from the UI:
+
+```bash
+voxclip --settings
+```
+
+Or from the command line:
+
+```bash
+voxclip --set-openai-key
+voxclip --check-openai-key
+voxclip --delete-openai-key
+```
+
+If you start a real dictation without a stored key, VoxClip prompts for one
+before opening the recorder.
+
+## Configure The Keyboard Shortcut
+
+The installed recorder command is:
+
+```bash
+/usr/bin/voxclip --record-and-copy
+```
+
+The recommended shortcut is:
+
+```text
+Ctrl+Alt+N
+```
+
+Install or update the managed GNOME shortcut:
+
+```bash
+voxclip --set-ubuntu-shortcut
+```
+
+Choose a different shortcut:
+
+```bash
+voxclip --set-ubuntu-shortcut Ctrl+Alt+K
+```
+
+VoxClip also creates a user autostart entry so the managed GNOME shortcut is
+re-applied when you log in.
+
+## Usage
+
+Start a dictation from the installed package:
+
+```bash
+voxclip --record-and-copy
+```
+
+Open settings:
+
+```bash
+voxclip --settings
+```
+
+Run an environment diagnostic without exposing secrets, audio, or transcripts:
+
+```bash
+voxclip --diagnose
+```
+
+List detected audio input devices:
+
+```bash
+voxclip --list-audio-devices
+```
+
+## Development
+
+Install development dependencies:
+
+```bash
+uv sync --all-extras --dev
+```
+
+Run the app from source:
+
+```bash
+uv run voxclip
+uv run voxclip --record-and-copy
+```
+
+Run the mock recorder without a microphone or OpenAI key:
+
+```bash
+uv run voxclip --record-and-copy --mock
+```
+
+In a headless environment:
+
+```bash
+QT_QPA_PLATFORM=offscreen uv run voxclip --record-and-copy --mock
+```
+
+Run checks:
 
 ```bash
 uv run pytest
 uv run ruff check .
-uv run python packaging/build_deb.py
-QT_QPA_PLATFORM=offscreen uv run vox-voice-paste --record-and-copy --mock
 ```
 
-Les validations restantes sont les tests reels Ubuntu : micro physique,
-session Wayland/X11, vraie cle OpenAI, installation/desinstallation du paquet sur
-une machine propre.
-
-## Installation
-
-### Option 1 - Depuis le depot avec `uv`
-
-Prerequis :
-
-```bash
-sudo apt update
-sudo apt install libportaudio2 libnotify-bin libxcb-cursor0 wl-clipboard xclip xsel
-uv sync --all-extras --dev
-```
-
-Lancer l'application :
-
-```bash
-uv run vox-voice-paste
-```
-
-Lancer une dictee :
-
-```bash
-uv run vox-voice-paste --record-and-copy
-```
-
-### Option 2 - Paquet Debian local
-
-Construire le paquet :
+Build a local Debian package:
 
 ```bash
 uv run python packaging/build_deb.py
+sudo apt install ./dist/voxclip_2.0.0_amd64.deb
 ```
 
-Le premier build telecharge les wheels Python verrouillees par `uv.lock` pour
-`/usr/bin/python3`, puis les embarque dans le paquet. Si PyPI est
-temporairement inaccessible mais que le cache `uv` contient deja ces
-dependances pour le Python systeme :
+If the required wheels are already available in the local `uv` cache, the Debian
+package can be built offline:
 
 ```bash
 uv run python packaging/build_deb.py --offline
 ```
 
-Installer le paquet :
+## Project Names
 
-```bash
-sudo apt install ./dist/vox-voice-paste_0.1.0_amd64.deb
-```
+- Python distribution: `voxclip`
+- Python package: `vox_voice_paste`
+- User command: `voxclip`
+- Debian package: `voxclip`
 
-Le paquet embarque les dependances Python dans `/opt/vox-voice-paste/venv`.
-Les dependances apt restantes sont uniquement les bibliotheques systeme
-necessaires au micro, au clipboard, aux notifications et a Qt (xcb-cursor).
+## Privacy And Security
 
-Desinstaller :
+- The OpenAI API key is stored in the system keyring, not in the config file.
+- Diagnostics report whether a key exists but never print the key.
+- VoxClip does not persist microphone audio to disk.
+- VoxClip does not keep a local transcript history by default.
+- Technical logs avoid transcript, audio, and secret content.
 
-```bash
-sudo apt remove vox-voice-paste
-```
+## License
 
-## Cle API OpenAI
-
-La cle OpenAI n'est jamais ecrite dans `config.toml`. Elle est stockee dans le
-keyring systeme.
-
-Vous pouvez la renseigner de quatre facons :
-
-1. Au premier lancement :
-
-```bash
-vox-voice-paste
-```
-
-2. Depuis les parametres, avec le bouton `Configurer la cle OpenAI` :
-
-```bash
-vox-voice-paste --settings
-```
-
-3. Automatiquement pendant l'utilisation : si une dictee reelle est lancee sans
-cle, une boite de dialogue demande la cle avant d'ouvrir la fenetre de dictee.
-
-4. En ligne de commande :
-
-```bash
-vox-voice-paste --set-openai-key
-vox-voice-paste --check-openai-key
-vox-voice-paste --delete-openai-key
-```
-
-## Utilisation
-
-Configurer un raccourci clavier Ubuntu personnalise qui execute :
-
-```bash
-/usr/bin/vox-voice-paste --record-and-copy
-```
-
-Raccourci recommande : `Ctrl+Alt+N`.
-
-Vous pouvez aussi appliquer directement le raccourci recommandé via :
-
-```bash
-vox-voice-paste --set-ubuntu-shortcut
-```
-
-ou choisir un raccourci perso :
-
-```bash
-vox-voice-paste --set-ubuntu-shortcut Ctrl+Alt+K
-```
-
-Pour un nettoyage propre (désinstallation de l'application, changement d'utilisateur, etc.), utilisez :
-
-```bash
-vox-voice-paste --remove-ubuntu-shortcut
-```
-
-Cette commande supprime le raccourci GNOME géré par l'application et son autostart.
-
-Le raccourci est configurable manuellement, ou installable en un clic via :
-
-```bash
-vox-voice-paste --set-ubuntu-shortcut
-```
-
-Au premier démarrage et à chaque ouverture de fenêtre, l'application tente
-d'installer le raccourci GNOME si votre session est compatible. Un .desktop
-en autostart est créé pour ré-appliquer ce raccourci à chaque login GNOME.
-
-Dans Paramètres, utilisez **Installer le raccourci GNOME** pour appliquer
-immédiatement une combinaison personnalisée.
-
-Flux utilisateur :
-
-1. Placez le curseur dans le champ texte cible.
-2. Lancez le raccourci Ubuntu.
-3. La fenetre Vox Voice Paste s'ouvre et l'enregistrement demarre.
-4. Parlez.
-5. Appuyez sur `Entree` ou cliquez sur le bouton rouge pour arreter.
-6. Le texte final est copie dans le presse-papiers.
-7. Collez avec `Ctrl+V`.
-
-Dans la fenetre :
-
-- `Entree` arrete et finalise la dictee ;
-- `Echap` annule sans modifier le presse-papiers ;
-- un texte vide n'ecrase pas le presse-papiers ;
-- en cas d'erreur, la fenetre reste ouverte avec le texte recuperable.
-
-## Mode mock
-
-Le mode mock permet de tester l'interface sans micro et sans cle OpenAI :
-
-```bash
-uv run vox-voice-paste --record-and-copy --mock
-```
-
-En environnement headless :
-
-```bash
-QT_QPA_PLATFORM=offscreen uv run vox-voice-paste --record-and-copy --mock
-```
-
-## Diagnostic
-
-Pour verifier l'environnement sans exposer de secret :
-
-```bash
-vox-voice-paste --diagnose
-```
-
-Le diagnostic indique notamment :
-
-- version application et Python ;
-- type de session desktop ;
-- presence/absence de la cle OpenAI ;
-- etat audio ;
-- backend clipboard ;
-- disponibilite des notifications.
-
-## Developpement
-
-Commandes utiles :
-
-```bash
-uv sync --all-extras --dev
-uv run pytest
-uv run ruff check .
-uv run vox-voice-paste --help
-uv run python -m vox_voice_paste --help
-```
-
-Le projet cible Python `>=3.12`.
-
-Nommage :
-
-- distribution Python : `voice2paste` ;
-- module Python : `vox_voice_paste` ;
-- commande utilisateur : `vox-voice-paste`.
-
-## Contraintes produit
-
-- Pas de collage automatique en V1.
-- Pas d'historique local des transcriptions par defaut.
-- Pas d'audio persistant sur disque.
-- Pas de secret en clair dans les fichiers de configuration ou les diagnostics.
+VoxClip is open source software distributed under the MIT License. See
+[LICENSE](LICENSE).

@@ -12,7 +12,7 @@ from vox_voice_paste.ui.onboarding_window import RECOMMENDED_SHORTCUT, SHORTCUT_
 def test_build_parser_contains_expected_commands() -> None:
     help_text = build_parser().format_help()
 
-    assert "vox-voice-paste" in help_text
+    assert "voxclip" in help_text
     assert "--record-and-copy" in help_text
     assert "--set-ubuntu-shortcut" in help_text
     assert "--remove-ubuntu-shortcut" in help_text
@@ -95,7 +95,7 @@ def test_module_help_entrypoint() -> None:
     )
 
     assert result.returncode == 0
-    assert "vox-voice-paste" in result.stdout
+    assert "voxclip" in result.stdout
 
 
 def test_check_openai_key_does_not_print_secret(capsys) -> None:

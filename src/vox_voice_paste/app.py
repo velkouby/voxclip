@@ -63,7 +63,7 @@ def run_record_and_copy(
             window.show()
             return int(app.exec())
     except SessionAlreadyRunningError as exc:
-        print(f"vox-voice-paste: {exc}", file=sys.stderr)
+        print(f"voxclip: {exc}", file=sys.stderr)
         return 1
 
 

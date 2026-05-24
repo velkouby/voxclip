@@ -11,7 +11,7 @@ from .base import TranscriptionEvent
 class MockTranscriptionService:
     def __init__(
         self,
-        transcript: str = "Ceci est une transcription de test.",
+        transcript: str = "This is a test transcription.",
         *,
         delay_seconds: float = 0.01,
     ) -> None:

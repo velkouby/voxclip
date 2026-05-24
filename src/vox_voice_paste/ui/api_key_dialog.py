@@ -24,21 +24,21 @@ class OpenAIKeyDialog(QDialog):
         self._secrets = secret_service
         self._key_validator = key_validator or OpenAIHTTPKeyValidator()
 
-        self.setWindowTitle("Cle OpenAI")
+        self.setWindowTitle("OpenAI Key")
         self.setMinimumWidth(460)
 
         self.key_input = QLineEdit()
         self.key_input.setEchoMode(QLineEdit.EchoMode.Password)
-        self.key_input.setPlaceholderText("Cle API OpenAI")
-        self.status_label = QLabel("La cle sera stockee dans le keyring systeme.")
+        self.key_input.setPlaceholderText("OpenAI API key")
+        self.status_label = QLabel("The key will be stored in the system keyring.")
 
-        self.save_button = QPushButton("Enregistrer")
+        self.save_button = QPushButton("Save")
         self.save_button.clicked.connect(self.save_key)
-        self.cancel_button = QPushButton("Annuler")
+        self.cancel_button = QPushButton("Cancel")
         self.cancel_button.clicked.connect(self.reject)
 
         layout = QVBoxLayout()
-        layout.addWidget(QLabel("Renseignez votre cle API OpenAI."))
+        layout.addWidget(QLabel("Enter your OpenAI API key."))
         layout.addWidget(self.key_input)
         layout.addWidget(self.status_label)
         layout.addWidget(self.save_button)
@@ -49,7 +49,7 @@ class OpenAIKeyDialog(QDialog):
     def save_key(self) -> None:
         value = self.key_input.text().strip()
         if not value:
-            self.status_label.setText("Cle vide.")
+            self.status_label.setText("Key is empty.")
             return
 
         validation = self._key_validator.validate(value)

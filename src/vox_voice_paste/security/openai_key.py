@@ -32,16 +32,16 @@ class OpenAIHTTPKeyValidator:
                 json.loads(response.read().decode("utf-8"))
         except urllib.error.HTTPError as exc:
             if exc.code in {401, 403}:
-                return KeyValidationResult(False, "Cle OpenAI invalide.")
-            return KeyValidationResult(False, "OpenAI a refuse le test de connexion.")
+                return KeyValidationResult(False, "Invalid OpenAI API key.")
+            return KeyValidationResult(False, "OpenAI refused the connection test.")
         except (OSError, TimeoutError, json.JSONDecodeError):
-            return KeyValidationResult(False, "Connexion OpenAI impossible.")
-        return KeyValidationResult(True, "Connexion OpenAI valide.")
+            return KeyValidationResult(False, "Unable to connect to OpenAI.")
+        return KeyValidationResult(True, "OpenAI connection verified.")
 
 
 class StaticOpenAIKeyValidator:
     def __init__(self, result: KeyValidationResult | None = None) -> None:
-        self._result = result or KeyValidationResult(True, "Connexion OpenAI valide.")
+        self._result = result or KeyValidationResult(True, "OpenAI connection verified.")
 
     def validate(self, api_key: str) -> KeyValidationResult:
         return self._result

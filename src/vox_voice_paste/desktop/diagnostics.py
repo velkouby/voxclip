@@ -27,7 +27,7 @@ def build_diagnostic_lines(
     secrets = secret_service or KeyringSecretService()
 
     lines = [
-        "Vox Voice Paste diagnostics",
+        "VoxClip diagnostics",
         f"version: {__version__}",
         f"python: {platform.python_version()}",
         f"config_path: {resolved_config_path}",

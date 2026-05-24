@@ -17,7 +17,7 @@ def test_settings_window_has_openai_key_button(qtbot, tmp_path) -> None:
     )
     qtbot.addWidget(window)
 
-    assert window.configure_key_button.text() == "Configurer la cle OpenAI"
+    assert window.configure_key_button.text() == "Configure OpenAI key"
 
 
 def test_settings_window_updates_status_after_key_dialog_accepts(
@@ -42,7 +42,7 @@ def test_settings_window_updates_status_after_key_dialog_accepts(
 
     window.configure_openai_key()
 
-    assert window.key_status.text() == "Cle OpenAI enregistree."
+    assert window.key_status.text() == "OpenAI key saved."
 
 
 def test_settings_window_copies_shortcut_command(qtbot, tmp_path) -> None:
@@ -58,7 +58,7 @@ def test_settings_window_copies_shortcut_command(qtbot, tmp_path) -> None:
     window.copy_shortcut_command()
 
     assert clipboard.text == SHORTCUT_COMMAND
-    assert "copiee" in window.shortcut_status.text()
+    assert "copied" in window.shortcut_status.text()
 
 
 def test_settings_window_installs_shortcut_and_persists_choice(

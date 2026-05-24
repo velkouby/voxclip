@@ -1,8 +1,9 @@
 #!/bin/sh
 set -eu
 
-SHORTCUT_FILE="vox-voice-paste-shortcut.desktop"
-RUNNER="/usr/bin/vox-voice-paste"
+SHORTCUT_FILE="voxclip-shortcut.desktop"
+LEGACY_SHORTCUT_FILE="vox-voice-paste-shortcut.desktop"
+RUNNER="/usr/bin/voxclip"
 
 remove_user_autostart() {
     home_dir="$1"
@@ -10,7 +11,9 @@ remove_user_autostart() {
     [ -d "$home_dir" ] || return 0
 
     autostart_file="$home_dir/.config/autostart/$SHORTCUT_FILE"
+    legacy_autostart_file="$home_dir/.config/autostart/$LEGACY_SHORTCUT_FILE"
     rm -f "$autostart_file" || true
+    rm -f "$legacy_autostart_file" || true
 }
 
 run_as_user_cleanup() {

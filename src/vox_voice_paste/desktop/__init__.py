@@ -11,6 +11,7 @@ from .notifications import (
     Notification,
     NotificationService,
 )
+from .session_lock import SessionAlreadyRunningError, SessionLock, default_session_lock_path
 from .shortcuts import (
     ShortcutInstallError,
     install_shortcut_autostart_entry,
@@ -18,7 +19,6 @@ from .shortcuts import (
     remove_ubuntu_shortcut,
     set_ubuntu_shortcut,
 )
-from .session_lock import SessionAlreadyRunningError, SessionLock, default_session_lock_path
 
 __all__ = [
     "ClipboardError",

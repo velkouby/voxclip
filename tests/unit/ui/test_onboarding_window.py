@@ -36,7 +36,7 @@ def test_onboarding_does_not_store_invalid_openai_key(qtbot, tmp_path, monkeypat
     window = OnboardingWindow(
         config_path=tmp_path / "config.toml",
         secret_service=secrets,
-        key_validator=StaticOpenAIKeyValidator(KeyValidationResult(False, "Cle invalide.")),
+        key_validator=StaticOpenAIKeyValidator(KeyValidationResult(False, "Invalid key.")),
     )
     qtbot.addWidget(window)
 
@@ -44,7 +44,7 @@ def test_onboarding_does_not_store_invalid_openai_key(qtbot, tmp_path, monkeypat
     window.store_key()
 
     assert secrets.get_secret(OPENAI_API_KEY_SECRET) is None
-    assert "Cle invalide" in window.key_status.text()
+    assert "Invalid key" in window.key_status.text()
 
 
 def test_onboarding_finish_persists_completed_config(qtbot, tmp_path, monkeypatch) -> None:
@@ -89,4 +89,4 @@ def test_onboarding_copies_shortcut_command(qtbot, tmp_path, monkeypatch) -> Non
     window.copy_shortcut_command()
 
     assert clipboard.text == SHORTCUT_COMMAND
-    assert "copiee" in window.shortcut_status.text()
+    assert "copied" in window.shortcut_status.text()

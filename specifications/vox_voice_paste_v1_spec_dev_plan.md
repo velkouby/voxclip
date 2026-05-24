@@ -1,4 +1,4 @@
-# Vox Voice Paste — Spécification fonctionnelle et plan de développement V1.0
+# VoxClip — Spécification fonctionnelle et plan de développement V1.0
 
 Version : 1.0  
 Date : 2026-05-23  
@@ -9,7 +9,7 @@ Statut : document de cadrage pour agent de développement
 
 ## 1. Résumé exécutif
 
-Vox Voice Paste V1.0 est une application desktop Ubuntu permettant de dicter du texte depuis n’importe quel contexte d’édition, puis de copier automatiquement la transcription finale dans le presse-papiers.
+VoxClip V1.0 est une application desktop Ubuntu permettant de dicter du texte depuis n’importe quel contexte d’édition, puis de copier automatiquement la transcription finale dans le presse-papiers.
 
 Le déclenchement se fait via un raccourci clavier global configuré par l’utilisateur dans Ubuntu, par exemple `Ctrl+Alt+V`. Une petite fenêtre de dictée s’ouvre, l’enregistrement démarre immédiatement, l’utilisateur parle, puis arrête l’enregistrement. L’application affiche la transcription en direct, récupère le texte final via l’API OpenAI Realtime Transcription, copie ce texte dans le presse-papiers et affiche une notification indiquant que le texte est prêt à être collé.
 
@@ -106,7 +106,7 @@ L’utilisateur :
 ### 5.1 Premier lancement
 
 1. L’utilisateur installe le package.
-2. Il lance “Vox Voice Paste” depuis le menu Ubuntu.
+2. Il lance “VoxClip” depuis le menu Ubuntu.
 3. L’assistant de configuration s’ouvre.
 4. Il saisit sa clé OpenAI.
 5. L’application teste la clé.
@@ -115,7 +115,7 @@ L’utilisateur :
 8. L’application affiche la commande à configurer dans les raccourcis Ubuntu :
 
 ```bash
-vox-voice-paste --record-and-copy
+voxclip --record-and-copy
 ```
 
 9. L’utilisateur configure un raccourci personnalisé Ubuntu, par exemple `Ctrl+Alt+V`.
@@ -165,20 +165,20 @@ vox-voice-paste --record-and-copy
 L’installation doit fournir au minimum deux commandes :
 
 ```bash
-vox-voice-paste
-vox-voice-paste --record-and-copy
+voxclip
+voxclip --record-and-copy
 ```
 
-`vox-voice-paste` ouvre l’application principale ou l’écran de configuration.
+`voxclip` ouvre l’application principale ou l’écran de configuration.
 
-`vox-voice-paste --record-and-copy` lance directement la mini fenêtre de dictée, démarre l’enregistrement et copie le texte final dans le presse-papiers. C’est cette commande qui doit être utilisée dans le raccourci clavier Ubuntu.
+`voxclip --record-and-copy` lance directement la mini fenêtre de dictée, démarre l’enregistrement et copie le texte final dans le presse-papiers. C’est cette commande qui doit être utilisée dans le raccourci clavier Ubuntu.
 
 Commandes optionnelles utiles pour le debug :
 
 ```bash
-vox-voice-paste --settings
-vox-voice-paste --list-audio-devices
-vox-voice-paste --diagnose
+voxclip --settings
+voxclip --list-audio-devices
+voxclip --diagnose
 ```
 
 ### 6.2 Assistant de configuration
@@ -208,7 +208,7 @@ La fenêtre doit être petite, non intrusive et centrée ou positionnée près d
 
 Composants visibles :
 
-- titre : “Vox Voice Paste” ;
+- titre : “VoxClip” ;
 - bouton principal rouge avec icône micro ;
 - indicateur d’état ;
 - barre de niveau sonore ;
@@ -247,7 +247,7 @@ Dans la fenêtre :
 - `Ctrl+C` dans la zone de texte : copier la sélection ;
 - `Ctrl+A` dans la zone de texte : sélectionner toute la transcription.
 
-Le raccourci global n’est pas géré directement par l’application en V1.0. Il est configuré dans Ubuntu comme raccourci personnalisé exécutant `vox-voice-paste --record-and-copy`.
+Le raccourci global n’est pas géré directement par l’application en V1.0. Il est configuré dans Ubuntu comme raccourci personnalisé exécutant `voxclip --record-and-copy`.
 
 ### 6.5 Transcription live
 
@@ -332,7 +332,7 @@ La clé OpenAI ne doit pas être stockée dans ce fichier. Elle doit être stock
 
 ### 6.10 Diagnostic
 
-La commande `vox-voice-paste --diagnose` doit vérifier :
+La commande `voxclip --diagnose` doit vérifier :
 
 - version de l’application ;
 - version Python / runtime ;
@@ -466,7 +466,7 @@ serveur WebSocket mock selon implémentation
 ### 8.2 Structure de dépôt recommandée
 
 ```text
-vox-voice-paste/
+voxclip/
 ├── pyproject.toml
 ├── README.md
 ├── CHANGELOG.md
@@ -478,7 +478,7 @@ vox-voice-paste/
 ├── packaging/
 │   ├── debian/
 │   ├── desktop/
-│   │   └── vox-voice-paste.desktop
+│   │   └── voxclip.desktop
 │   └── icons/
 ├── src/
 │   └── vox_voice_paste/
@@ -681,7 +681,7 @@ Tâches :
 Critères d’acceptation :
 
 - `python -m vox_voice_paste --help` fonctionne ;
-- `vox-voice-paste --help` fonctionne après installation locale ;
+- `voxclip --help` fonctionne après installation locale ;
 - les tests de base passent ;
 - la structure de modules correspond au document.
 
@@ -702,7 +702,7 @@ Tâches :
 Critères d’acceptation :
 
 - la clé n’est jamais écrite dans le fichier de config ;
-- `vox-voice-paste --diagnose` détecte si une clé est présente sans l’afficher ;
+- `voxclip --diagnose` détecte si une clé est présente sans l’afficher ;
 - tests unitaires couvrent config et secrets.
 
 ### Phase C — Audio devices et capture
@@ -723,7 +723,7 @@ Tâches :
 
 Critères d’acceptation :
 
-- `vox-voice-paste --list-audio-devices` affiche les entrées audio ;
+- `voxclip --list-audio-devices` affiche les entrées audio ;
 - un test local peut capturer 3 secondes d’audio sans écrire sur disque ;
 - les chunks produits sont au format attendu ;
 - le niveau sonore varie quand l’utilisateur parle.
@@ -772,7 +772,7 @@ Tâches :
 
 Critères d’acceptation :
 
-- `vox-voice-paste --record-and-copy --mock` ouvre la fenêtre et simule une transcription ;
+- `voxclip --record-and-copy --mock` ouvre la fenêtre et simule une transcription ;
 - le bouton rouge démarre/arrête correctement ;
 - `Échap` annule sans copier ;
 - les états sont visibles et cohérents ;
@@ -821,7 +821,7 @@ Critères d’acceptation :
 - l’utilisateur peut configurer la clé ;
 - l’utilisateur peut choisir le micro ;
 - l’assistant explique clairement comment créer le raccourci Ubuntu ;
-- l’utilisateur peut copier `vox-voice-paste --record-and-copy`.
+- l’utilisateur peut copier `voxclip --record-and-copy`.
 
 ### Phase H — Diagnostic et robustesse
 
@@ -839,7 +839,7 @@ Tâches :
 
 Critères d’acceptation :
 
-- `vox-voice-paste --diagnose` produit un rapport exploitable ;
+- `voxclip --diagnose` produit un rapport exploitable ;
 - aucune donnée sensible n’apparaît ;
 - le diagnostic indique les problèmes probables.
 
@@ -861,9 +861,9 @@ Tâches :
 
 Critères d’acceptation :
 
-- l’utilisateur installe avec `sudo apt install ./vox-voice-paste_x.y.z_amd64.deb` ;
+- l’utilisateur installe avec `sudo apt install ./voxclip_x.y.z_amd64.deb` ;
 - l’entrée apparaît dans le menu d’applications ;
-- la commande `vox-voice-paste` est disponible ;
+- la commande `voxclip` est disponible ;
 - l’assistant s’ouvre au premier lancement ;
 - la désinstallation ne laisse pas de fichiers système inutiles.
 
@@ -905,7 +905,7 @@ Critères d’acceptation globaux :
 
 ### Epic 1 — CLI et configuration
 
-- `CLI-001` : créer commande `vox-voice-paste`.
+- `CLI-001` : créer commande `voxclip`.
 - `CLI-002` : ajouter argument `--record-and-copy`.
 - `CLI-003` : ajouter argument `--settings`.
 - `CLI-004` : ajouter argument `--diagnose`.
@@ -982,7 +982,7 @@ Critères d’acceptation globaux :
 
 ### AC-001 — Premier lancement
 
-Étant donné que l’application est installée et non configurée, quand l’utilisateur lance Vox Voice Paste, alors l’assistant de configuration s’ouvre.
+Étant donné que l’application est installée et non configurée, quand l’utilisateur lance VoxClip, alors l’assistant de configuration s’ouvre.
 
 ### AC-002 — Clé OpenAI
 
@@ -997,7 +997,7 @@ Critères d’acceptation globaux :
 Étant donné que l’utilisateur veut configurer le raccourci Ubuntu, quand il arrive à l’écran correspondant, alors l’application affiche et permet de copier la commande :
 
 ```bash
-vox-voice-paste --record-and-copy
+voxclip --record-and-copy
 ```
 
 ### AC-005 — Dictée mock
@@ -1067,7 +1067,7 @@ vox-voice-paste --record-and-copy
 Message :
 
 ```text
-Clé OpenAI non configurée. Ouvrez les paramètres Vox Voice Paste pour l’ajouter.
+Clé OpenAI non configurée. Ouvrez les paramètres VoxClip pour l’ajouter.
 ```
 
 Action :
@@ -1143,14 +1143,14 @@ Action :
 ### Notification succès
 
 ```text
-Vox Voice Paste
+VoxClip
 Texte copié. Faites Ctrl+V pour coller.
 ```
 
 ### Notification annulation
 
 ```text
-Vox Voice Paste
+VoxClip
 Dictée annulée.
 ```
 
@@ -1170,13 +1170,13 @@ Finalisation de la transcription…
 ### Écran raccourci
 
 ```text
-Configurez un raccourci Ubuntu pour lancer Vox Voice Paste depuis n’importe quelle application.
+Configurez un raccourci Ubuntu pour lancer VoxClip depuis n’importe quelle application.
 
 Nom :
-Vox Voice Paste
+VoxClip
 
 Commande :
-vox-voice-paste --record-and-copy
+voxclip --record-and-copy
 
 Raccourci recommandé :
 Ctrl+Alt+V
@@ -1233,7 +1233,7 @@ La V1.0 est terminée lorsque :
 - l’application s’installe sur Ubuntu ;
 - l’utilisateur peut la lancer depuis le menu ;
 - le premier lancement guide la configuration ;
-- la commande `vox-voice-paste --record-and-copy` fonctionne ;
+- la commande `voxclip --record-and-copy` fonctionne ;
 - l’utilisateur peut configurer un raccourci Ubuntu vers cette commande ;
 - la fenêtre de dictée s’ouvre et enregistre ;
 - la transcription live fonctionne avec OpenAI ;

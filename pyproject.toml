@@ -1,9 +1,16 @@
 [project]
-name = "voice2paste"
-version = "0.2.0"
+name = "voxclip"
+version = "2.0.0"
 description = "Ubuntu desktop voice dictation helper that copies transcriptions to the clipboard."
 readme = "README.md"
+license = { file = "LICENSE" }
 requires-python = ">=3.12"
+classifiers = [
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: POSIX :: Linux",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.12",
+]
 dependencies = [
     "keyring>=25.7",
     "numpy>=2.3",
@@ -16,7 +23,7 @@ dependencies = [
 ]
 
 [project.scripts]
-vox-voice-paste = "vox_voice_paste.main:main"
+voxclip = "vox_voice_paste.main:main"
 
 [build-system]
 requires = ["hatchling>=1.27"]

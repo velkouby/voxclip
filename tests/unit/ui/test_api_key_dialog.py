@@ -29,7 +29,7 @@ def test_openai_key_dialog_does_not_store_invalid_key(qtbot) -> None:
     secrets = InMemorySecretService()
     dialog = OpenAIKeyDialog(
         secret_service=secrets,
-        key_validator=StaticOpenAIKeyValidator(KeyValidationResult(False, "Cle invalide.")),
+        key_validator=StaticOpenAIKeyValidator(KeyValidationResult(False, "Invalid key.")),
     )
     qtbot.addWidget(dialog)
 
@@ -38,4 +38,4 @@ def test_openai_key_dialog_does_not_store_invalid_key(qtbot) -> None:
 
     assert dialog.result() == dialog.DialogCode.Rejected
     assert secrets.get_secret(OPENAI_API_KEY_SECRET) is None
-    assert "Cle invalide" in dialog.status_label.text()
+    assert "Invalid key" in dialog.status_label.text()

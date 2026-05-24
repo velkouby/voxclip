@@ -32,4 +32,4 @@ def test_http_openai_key_validator_reports_auth_failure(monkeypatch) -> None:
     result = OpenAIHTTPKeyValidator().validate("sk-test")
 
     assert result.ok is False
-    assert "invalide" in result.message
+    assert "Invalid OpenAI API key" in result.message

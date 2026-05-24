@@ -1,10 +1,12 @@
-Package: vox-voice-paste
-Version: 0.1.0
+Package: voxclip
+Version: @VERSION@
 Section: utils
 Priority: optional
 Architecture: @ARCH@
-Maintainer: Vox Voice Paste Maintainers <maintainers@example.invalid>
+Maintainer: VoxClip Maintainers <maintainers@example.invalid>
 Depends: python3 (>= 3.12), libportaudio2, wl-clipboard | xclip | xsel, libnotify-bin, libxcb-cursor0
+Conflicts: vox-voice-paste
+Replaces: vox-voice-paste
 Description: Ubuntu desktop voice dictation helper
- Vox Voice Paste opens a small recorder, transcribes speech, copies the final
+ VoxClip opens a small recorder, transcribes speech, copies the final
  transcript to the clipboard, and lets the user paste it manually.

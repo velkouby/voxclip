@@ -1,4 +1,4 @@
-# Vox Voice Paste V1.0 - Tracker de developpement
+# VoxClip V1.0 - Tracker de developpement
 
 Source : `specifications/vox_voice_paste_v1_spec_dev_plan.md`  
 Date de creation : 2026-05-23  
@@ -43,7 +43,7 @@ La V1.0 ne doit pas faire de collage automatique.
 
 ```toml
 [project]
-name = "voice2paste"
+name = "voxclip"
 version = "0.1.0"
 requires-python = ">=3.12"
 dependencies = [
@@ -60,9 +60,9 @@ dependencies = [
 
 Points a suivre :
 
-- [x] Confirmer si le nom de distribution reste `voice2paste` ou devient `vox-voice-paste`.
-  - Decision : conserver la distribution Python `voice2paste`.
-- [x] Conserver le binaire utilisateur `vox-voice-paste`, meme si le nom de package Python reste `voice2paste`.
+- [x] Confirmer si le nom de distribution reste `voxclip` ou devient `voxclip`.
+  - Decision : conserver la distribution Python `voxclip`.
+- [x] Conserver le binaire utilisateur `voxclip`, meme si le nom de package Python reste `voxclip`.
 - [x] Utiliser le module Python `vox_voice_paste` pour rester coherent avec la marque produit.
 - [x] Confirmer Python `>=3.14` comme contrainte officielle, ou revenir a une cible plus large si PySide6, sounddevice, packaging `.deb` ou OpenAI SDK bloquent.
   - Decision : cibler `>=3.12` pour rester compatible avec Ubuntu 24.04 et faciliter le packaging.
@@ -74,7 +74,7 @@ Points a suivre :
 ### 3.1 Decisions confirmees
 
 - [x] Pas de collage automatique en V1.0.
-- [x] Le raccourci global est configure par Ubuntu et execute `vox-voice-paste --record-and-copy`.
+- [x] Le raccourci global est configure par Ubuntu et execute `voxclip --record-and-copy`.
 - [x] Pas d'historique local des transcriptions par defaut.
 - [x] Pas d'audio persistant sur disque.
 - [x] Cle OpenAI stockee dans le keyring systeme, jamais en clair dans la config.
@@ -116,9 +116,9 @@ Priorites :
 
 Definition of done globale :
 
-- [x] La commande `uv run vox-voice-paste --help` fonctionne.
-- [x] La commande `uv run vox-voice-paste --record-and-copy --mock` ouvre la fenetre et produit une transcription simulee.
-- [x] La commande configuree dans Ubuntu est documentee : `vox-voice-paste --record-and-copy`.
+- [x] La commande `uv run voxclip --help` fonctionne.
+- [x] La commande `uv run voxclip --record-and-copy --mock` ouvre la fenetre et produit une transcription simulee.
+- [x] La commande configuree dans Ubuntu est documentee : `voxclip --record-and-copy`.
 - [!] Une dictee reelle courte copie le texte final dans le presse-papiers.
   - Flux reel cable ; validation bloquee localement par PortAudio absent et cle OpenAI absente.
 - [x] L'annulation ne modifie pas le presse-papiers.
@@ -147,15 +147,15 @@ Notes :
 ### 5.2 Commandes attendues
 
 ```bash
-uv run vox-voice-paste --help
-uv run vox-voice-paste --settings
-uv run vox-voice-paste --record-and-copy --mock
-uv run vox-voice-paste --record-and-copy
-uv run vox-voice-paste --list-audio-devices
-uv run vox-voice-paste --diagnose
-uv run vox-voice-paste --check-openai-key
-uv run vox-voice-paste --set-openai-key
-uv run vox-voice-paste --delete-openai-key
+uv run voxclip --help
+uv run voxclip --settings
+uv run voxclip --record-and-copy --mock
+uv run voxclip --record-and-copy
+uv run voxclip --list-audio-devices
+uv run voxclip --diagnose
+uv run voxclip --check-openai-key
+uv run voxclip --set-openai-key
+uv run voxclip --delete-openai-key
 uv run pytest
 ```
 
@@ -252,7 +252,7 @@ Tracking :
 ### 7.3 Dependances systeme Ubuntu a documenter
 
 - [!] PortAudio / bibliotheques necessaires a `sounddevice`.
-  - Local : `uv run vox-voice-paste --list-audio-devices` echoue car la bibliotheque PortAudio est absente.
+  - Local : `uv run voxclip --list-audio-devices` echoue car la bibliotheque PortAudio est absente.
   - Action Ubuntu : installer `libportaudio2`.
 - [ ] Backend Secret Service pour `keyring`.
 - [x] `wl-clipboard` recommande sur Wayland si retenu.
@@ -271,7 +271,7 @@ Objectif : obtenir un squelette installable et testable.
 - [x] `A-002` `P0` Completer `pyproject.toml` avec build backend, scripts console et dependances de base.
 - [x] `A-003` `P0` Creer `src/vox_voice_paste`.
 - [x] `A-004` `P0` Ajouter `__main__.py`, `main.py`, `cli.py`.
-- [x] `A-005` `P0` Ajouter commande `vox-voice-paste --help`.
+- [x] `A-005` `P0` Ajouter commande `voxclip --help`.
 - [x] `A-006` `P0` Ajouter `tests/` et premier test CLI.
 - [x] `A-007` `P1` Ajouter `ruff` et configuration minimale.
 - [x] `A-008` `P1` Ajouter logs structures sans donnees sensibles.
@@ -280,7 +280,7 @@ Objectif : obtenir un squelette installable et testable.
 
 Critere d'acceptation :
 
-- [x] `uv run vox-voice-paste --help` fonctionne.
+- [x] `uv run voxclip --help` fonctionne.
 - [x] `uv run python -m vox_voice_paste --help` fonctionne.
 - [x] `uv run pytest` passe.
 
@@ -319,7 +319,7 @@ Objectif : lister les micros et produire des chunks PCM compatibles.
 
 Critere d'acceptation :
 
-- [!] `uv run vox-voice-paste --list-audio-devices` affiche les entrees audio.
+- [!] `uv run voxclip --list-audio-devices` affiche les entrees audio.
   - Commande implementee et testee avec fake ; validation locale bloquee par PortAudio absent.
 - [!] Un test local capture 3 secondes sans ecriture disque.
   - Bloque localement tant que PortAudio et un micro ne sont pas disponibles.
@@ -385,7 +385,7 @@ Etats UI a couvrir :
 
 Critere d'acceptation :
 
-- [x] `uv run vox-voice-paste --record-and-copy --mock` ouvre la fenetre.
+- [x] `uv run voxclip --record-and-copy --mock` ouvre la fenetre.
 - [x] Le bouton principal arrete correctement.
 - [x] `Echap` annule sans copier.
 - [x] Une erreur reste visible et lisible.
@@ -428,7 +428,7 @@ Objectif : rendre l'application utilisable sans terminal.
 - [x] `G-006` `P0` Ecran choix micro.
 - [ ] `G-007` `P0` Test niveau sonore.
 - [x] `G-008` `P0` Ecran instruction raccourci Ubuntu.
-- [x] `G-009` `P1` Copier la commande `vox-voice-paste --record-and-copy`.
+- [x] `G-009` `P1` Copier la commande `voxclip --record-and-copy`.
 - [ ] `G-010` `P1` Test final de dictee.
 - [x] `G-011` `P0` Marquer onboarding termine ou ignore explicitement.
 
@@ -456,7 +456,7 @@ Objectif : faciliter support et debug.
 
 Critere d'acceptation :
 
-- [x] `uv run vox-voice-paste --diagnose` produit un rapport lisible.
+- [x] `uv run voxclip --diagnose` produit un rapport lisible.
 - [x] Aucune cle, aucun audio et aucun transcript n'apparaissent.
 - [x] Le rapport indique les actions probables a corriger.
 
@@ -477,10 +477,10 @@ Objectif : produire un paquet installable.
 
 Critere d'acceptation :
 
-- [!] `sudo apt install ./vox-voice-paste_x.y.z_amd64.deb` installe l'application.
+- [!] `sudo apt install ./voxclip_x.y.z_amd64.deb` installe l'application.
   - Non execute localement ; paquet construit via `dpkg-deb`.
 - [x] L'entree apparait dans le menu Ubuntu.
-- [x] `vox-voice-paste` est disponible dans le PATH.
+- [x] `voxclip` est disponible dans le PATH.
 - [ ] La desinstallation ne laisse pas de fichiers systeme inutiles.
 
 ### Phase J - Validation V1.0
@@ -520,7 +520,7 @@ Critere d'acceptation release :
 
 ### Epic CLI et configuration
 
-- [ ] `CLI-001` `P0` Creer commande `vox-voice-paste`.
+- [ ] `CLI-001` `P0` Creer commande `voxclip`.
 - [ ] `CLI-002` `P0` Ajouter `--record-and-copy`.
 - [x] `CLI-003` `P1` Ajouter `--settings`.
 - [x] `CLI-004` `P0` Ajouter `--diagnose`.

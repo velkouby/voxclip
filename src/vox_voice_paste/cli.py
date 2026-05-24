@@ -9,11 +9,11 @@ from . import __version__
 from .audio import AudioDeviceError, format_input_devices, list_input_devices
 from .config import DEFAULT_UBUNTU_SHORTCUT, load_config
 from .desktop.diagnostics import build_diagnostic_lines, format_diagnostic_report
-from .logging_config import configure_logging
 from .desktop.shortcuts import DEFAULT_SHORTCUT_COMMAND
+from .logging_config import configure_logging
 from .security import OPENAI_API_KEY_SECRET, KeyringSecretService, SecretError, SecretService
 
-DIST_NAME = "voice2paste"
+DIST_NAME = "voxclip"
 
 
 def package_version() -> str:
@@ -25,7 +25,7 @@ def package_version() -> str:
 
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
-        prog="vox-voice-paste",
+        prog="voxclip",
         description=(
             "Dictate text from an Ubuntu desktop session and copy the final "
             "transcript to the clipboard."
@@ -133,7 +133,7 @@ def main(
                 command=DEFAULT_SHORTCUT_COMMAND,
             )
         except ShortcutInstallError as exc:
-            parser.exit(1, f"vox-voice-paste: {exc}\n")
+            parser.exit(1, f"voxclip: {exc}\n")
         print(
             f"Shortcut configured: {args.set_ubuntu_shortcut} -> "
             f"{DEFAULT_SHORTCUT_COMMAND}"
@@ -151,7 +151,7 @@ def main(
             remove_ubuntu_shortcut()
             remove_shortcut_autostart_entry()
         except ShortcutInstallError as exc:
-            parser.exit(1, f"vox-voice-paste: {exc}\n")
+            parser.exit(1, f"voxclip: {exc}\n")
         print("GNOME shortcut binding and autostart entry removed.")
         return 0
 
@@ -169,7 +169,7 @@ def main(
         try:
             devices = list_input_devices()
         except AudioDeviceError as exc:
-            parser.exit(1, f"vox-voice-paste: {exc}\n")
+            parser.exit(1, f"voxclip: {exc}\n")
         print(format_input_devices(devices))
         return 0
 
@@ -181,11 +181,11 @@ def main(
     if args.set_openai_key:
         value = getpass.getpass("OpenAI API key: ").strip()
         if not value:
-            parser.exit(1, "vox-voice-paste: OpenAI API key was empty\n")
+            parser.exit(1, "voxclip: OpenAI API key was empty\n")
         try:
             secrets.set_secret(OPENAI_API_KEY_SECRET, value)
         except SecretError as exc:
-            parser.exit(1, f"vox-voice-paste: {exc}\n")
+            parser.exit(1, f"voxclip: {exc}\n")
         print("OpenAI API key stored in the system keyring.")
         return 0
 
@@ -193,7 +193,7 @@ def main(
         try:
             secrets.delete_secret(OPENAI_API_KEY_SECRET)
         except SecretError as exc:
-            parser.exit(1, f"vox-voice-paste: {exc}\n")
+            parser.exit(1, f"voxclip: {exc}\n")
         print("OpenAI API key deleted from the system keyring.")
         return 0
 
@@ -201,7 +201,7 @@ def main(
         try:
             is_present = secrets.get_secret(OPENAI_API_KEY_SECRET) is not None
         except SecretError as exc:
-            parser.exit(1, f"vox-voice-paste: {exc}\n")
+            parser.exit(1, f"voxclip: {exc}\n")
         print(f"OpenAI API key: {'present' if is_present else 'missing'}")
         return 0
 

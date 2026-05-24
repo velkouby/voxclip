@@ -578,8 +578,8 @@ wheels = [
 ]
 
 [[package]]
-name = "voice2paste"
-version = "0.2.0"
+name = "voxclip"
+version = "2.0.0"
 source = { editable = "." }
 dependencies = [
     { name = "keyring" },
