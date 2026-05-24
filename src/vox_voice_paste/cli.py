@@ -6,6 +6,7 @@ from collections.abc import Sequence
 from importlib.metadata import PackageNotFoundError, version
 
 from . import __version__
+from .audio import AudioDeviceError, format_input_devices, list_input_devices
 from .desktop.diagnostics import build_diagnostic_lines, format_diagnostic_report
 from .logging_config import configure_logging
 from .security import OPENAI_API_KEY_SECRET, KeyringSecretService, SecretError, SecretService
@@ -99,7 +100,12 @@ def main(
         parser.exit(1, "vox-voice-paste: settings are not implemented yet\n")
 
     if args.list_audio_devices:
-        parser.exit(1, "vox-voice-paste: audio device listing is not implemented yet\n")
+        try:
+            devices = list_input_devices()
+        except AudioDeviceError as exc:
+            parser.exit(1, f"vox-voice-paste: {exc}\n")
+        print(format_input_devices(devices))
+        return 0
 
     if args.diagnose:
         lines = build_diagnostic_lines(secret_service=secrets)

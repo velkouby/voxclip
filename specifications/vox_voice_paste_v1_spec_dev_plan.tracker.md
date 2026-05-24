@@ -2,7 +2,7 @@
 
 Source : `specifications/vox_voice_paste_v1_spec_dev_plan.md`  
 Date de creation : 2026-05-23  
-Statut global : En cours - Phase A terminee  
+Statut global : En cours - Phase C implementee, validation micro reelle bloquee par PortAudio local  
 Environnement cible : Ubuntu desktop, priorite GNOME / Wayland  
 Environnement local observe : `uv 0.9.17`, `.venv` present, Python `3.14.2`, depot Git initialise
 
@@ -48,8 +48,10 @@ version = "0.1.0"
 requires-python = ">=3.12"
 dependencies = [
     "keyring>=25.7",
+    "numpy>=2.3",
     "platformdirs>=4.5",
     "pydantic>=2.12",
+    "sounddevice>=0.5",
     "tomli-w>=1.2",
 ]
 ```
@@ -90,7 +92,7 @@ Points a suivre :
 - [ ] Ajouter une strategie de timeout explicite pour finalisation OpenAI.
 - [ ] Ajouter une commande dev `--mock` utilisable avec `--record-and-copy`.
 - [ ] Ajouter une commande dev pour tester le clipboard sans OpenAI.
-- [ ] Ajouter des tests sans micro reel, sans keyring reel et sans reseau.
+- [x] Ajouter des tests sans micro reel, sans keyring reel et sans reseau.
 - [ ] Distinguer les logs techniques des donnees utilisateur : jamais de transcript en log par defaut.
 
 ---
@@ -225,8 +227,8 @@ Tracking :
 ### 7.1 Runtime
 
 - [ ] `PySide6` - interface desktop Qt.
-- [ ] `sounddevice` - capture micro.
-- [ ] `numpy` - traitement audio et RMS.
+- [x] `sounddevice` - capture micro.
+- [x] `numpy` - traitement audio et RMS.
 - [ ] `openai` ou `websockets` - client Realtime Transcription, a choisir apres prototype.
 - [x] `platformdirs` - chemins de configuration utilisateur.
 - [x] `pydantic` - validation config.
@@ -245,7 +247,9 @@ Tracking :
 
 ### 7.3 Dependances systeme Ubuntu a documenter
 
-- [ ] PortAudio / bibliotheques necessaires a `sounddevice`.
+- [!] PortAudio / bibliotheques necessaires a `sounddevice`.
+  - Local : `uv run vox-voice-paste --list-audio-devices` echoue car la bibliotheque PortAudio est absente.
+  - Action Ubuntu : installer `libportaudio2`.
 - [ ] Backend Secret Service pour `keyring`.
 - [ ] `wl-clipboard` recommande sur Wayland si retenu.
 - [ ] `xclip` ou `xsel` recommande sur X11 si retenu.
@@ -299,22 +303,25 @@ Critere d'acceptation :
 
 Objectif : lister les micros et produire des chunks PCM compatibles.
 
-- [ ] `C-001` `P0` Lister les peripheriques d'entree.
-- [ ] `C-002` `P0` Identifier le micro par defaut.
-- [ ] `C-003` `P0` Implementer capture micro avec `sounddevice`.
-- [ ] `C-004` `P0` Convertir en mono.
-- [ ] `C-005` `P0` Resampler vers PCM mono 24 kHz si necessaire.
-- [ ] `C-006` `P0` Produire des chunks `bytes`.
-- [ ] `C-007` `P0` Calculer niveau RMS pour l'UI.
-- [ ] `C-008` `P0` Gerer arret propre et erreurs peripherique.
-- [ ] `C-009` `P0` Ajouter source audio factice pour tests.
+- [x] `C-001` `P0` Lister les peripheriques d'entree.
+- [x] `C-002` `P0` Identifier le micro par defaut.
+- [x] `C-003` `P0` Implementer capture micro avec `sounddevice`.
+- [x] `C-004` `P0` Convertir en mono.
+- [x] `C-005` `P0` Resampler vers PCM mono 24 kHz si necessaire.
+- [x] `C-006` `P0` Produire des chunks `bytes`.
+- [x] `C-007` `P0` Calculer niveau RMS pour l'UI.
+- [x] `C-008` `P0` Gerer arret propre et erreurs peripherique.
+- [x] `C-009` `P0` Ajouter source audio factice pour tests.
 
 Critere d'acceptation :
 
-- [ ] `uv run vox-voice-paste --list-audio-devices` affiche les entrees audio.
-- [ ] Un test local capture 3 secondes sans ecriture disque.
-- [ ] Le niveau sonore varie quand l'utilisateur parle.
-- [ ] Les tests automatises ne dependent pas d'un micro reel.
+- [!] `uv run vox-voice-paste --list-audio-devices` affiche les entrees audio.
+  - Commande implementee et testee avec fake ; validation locale bloquee par PortAudio absent.
+- [!] Un test local capture 3 secondes sans ecriture disque.
+  - Bloque localement tant que PortAudio et un micro ne sont pas disponibles.
+- [!] Le niveau sonore varie quand l'utilisateur parle.
+  - Bloque localement tant que PortAudio et un micro ne sont pas disponibles.
+- [x] Les tests automatises ne dependent pas d'un micro reel.
 
 ### Phase D - Transcription mock puis OpenAI Realtime
 
@@ -505,7 +512,7 @@ Critere d'acceptation release :
 - [ ] `CLI-003` `P1` Ajouter `--settings`.
 - [x] `CLI-004` `P0` Ajouter `--diagnose`.
 - [ ] `CLI-005` `P0` Ajouter `--mock`.
-- [ ] `CLI-006` `P1` Ajouter `--list-audio-devices`.
+- [x] `CLI-006` `P1` Ajouter `--list-audio-devices`.
 - [x] `CFG-001` `P0` Creer modele de config.
 - [x] `CFG-002` `P0` Persister config utilisateur.
 - [ ] `CFG-003` `P1` Ajouter migration config versionnee.
@@ -514,14 +521,14 @@ Critere d'acceptation release :
 
 ### Epic Audio
 
-- [ ] `AUD-001` `P0` Lister peripheriques audio.
-- [ ] `AUD-002` `P0` Selectionner peripherique par defaut.
-- [ ] `AUD-003` `P0` Capturer flux micro.
-- [ ] `AUD-004` `P0` Convertir en mono.
-- [ ] `AUD-005` `P0` Resampler 24 kHz.
-- [ ] `AUD-006` `P0` Calculer niveau sonore.
-- [ ] `AUD-007` `P0` Gerer arret propre.
-- [ ] `AUD-008` `P0` Source audio factice.
+- [x] `AUD-001` `P0` Lister peripheriques audio.
+- [x] `AUD-002` `P0` Selectionner peripherique par defaut.
+- [x] `AUD-003` `P0` Capturer flux micro.
+- [x] `AUD-004` `P0` Convertir en mono.
+- [x] `AUD-005` `P0` Resampler 24 kHz.
+- [x] `AUD-006` `P0` Calculer niveau sonore.
+- [x] `AUD-007` `P0` Gerer arret propre.
+- [x] `AUD-008` `P0` Source audio factice.
 
 ### Epic Transcription
 

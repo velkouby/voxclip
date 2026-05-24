@@ -3,6 +3,7 @@ from __future__ import annotations
 import subprocess
 import sys
 
+from vox_voice_paste.audio import AudioInputDevice
 from vox_voice_paste.cli import build_parser, main
 from vox_voice_paste.security import OPENAI_API_KEY_SECRET, InMemorySecretService
 
@@ -46,3 +47,24 @@ def test_check_openai_key_does_not_print_secret(capsys) -> None:
     assert exit_code == 0
     assert "present" in captured.out
     assert "sk-test-secret" not in captured.out
+
+
+def test_list_audio_devices_prints_devices(monkeypatch, capsys) -> None:
+    monkeypatch.setattr(
+        "vox_voice_paste.cli.list_input_devices",
+        lambda: [
+            AudioInputDevice(
+                id="0",
+                name="Internal Mic",
+                max_input_channels=1,
+                default_sample_rate=24_000,
+                is_default=True,
+            )
+        ],
+    )
+
+    exit_code = main(["--list-audio-devices"])
+
+    captured = capsys.readouterr()
+    assert exit_code == 0
+    assert "Internal Mic" in captured.out

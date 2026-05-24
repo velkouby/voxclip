@@ -32,6 +32,13 @@ Configuration is stored under the user config directory. The OpenAI API key is
 stored separately in the system keyring and is never written to `config.toml` or
 shown in diagnostics.
 
+Audio capture uses PortAudio through `sounddevice`. On Ubuntu, install the system
+runtime before listing or capturing real microphones:
+
+```bash
+sudo apt install libportaudio2
+```
+
 ## Product Constraints
 
 - No automatic paste simulation in V1.
