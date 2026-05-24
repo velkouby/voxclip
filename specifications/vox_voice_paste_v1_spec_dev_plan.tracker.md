@@ -2,9 +2,9 @@
 
 Source : `specifications/vox_voice_paste_v1_spec_dev_plan.md`  
 Date de creation : 2026-05-23  
-Statut global : A demarrer  
+Statut global : En cours - Phase A terminee  
 Environnement cible : Ubuntu desktop, priorite GNOME / Wayland  
-Environnement local observe : `uv 0.9.17`, `.venv` present, Python `3.14.2`, projet non initialise en depot Git
+Environnement local observe : `uv 0.9.17`, `.venv` present, Python `3.14.2`, depot Git initialise
 
 ---
 
@@ -32,10 +32,10 @@ La V1.0 ne doit pas faire de collage automatique.
 - [x] `pyproject.toml`
 - [x] `specifications/vox_voice_paste_v1_spec_dev_plan.md`
 - [x] `.venv/`
-- [ ] `uv.lock`
-- [ ] `src/`
-- [ ] `tests/`
-- [ ] `README.md`
+- [x] `uv.lock`
+- [x] `src/`
+- [x] `tests/`
+- [x] `README.md`
 - [ ] `docs/`
 - [ ] `packaging/`
 
@@ -45,16 +45,18 @@ La V1.0 ne doit pas faire de collage automatique.
 [project]
 name = "voice2paste"
 version = "0.1.0"
-requires-python = ">=3.14"
+requires-python = ">=3.12"
 dependencies = []
 ```
 
 Points a suivre :
 
-- [ ] Confirmer si le nom de distribution reste `voice2paste` ou devient `vox-voice-paste`.
-- [ ] Conserver le binaire utilisateur `vox-voice-paste`, meme si le nom de package Python reste `voice2paste`.
-- [ ] Utiliser le module Python `vox_voice_paste` pour rester coherent avec la marque produit.
-- [ ] Confirmer Python `>=3.14` comme contrainte officielle, ou revenir a une cible plus large si PySide6, sounddevice, packaging `.deb` ou OpenAI SDK bloquent.
+- [x] Confirmer si le nom de distribution reste `voice2paste` ou devient `vox-voice-paste`.
+  - Decision : conserver la distribution Python `voice2paste`.
+- [x] Conserver le binaire utilisateur `vox-voice-paste`, meme si le nom de package Python reste `voice2paste`.
+- [x] Utiliser le module Python `vox_voice_paste` pour rester coherent avec la marque produit.
+- [x] Confirmer Python `>=3.14` comme contrainte officielle, ou revenir a une cible plus large si PySide6, sounddevice, packaging `.deb` ou OpenAI SDK bloquent.
+  - Decision : cibler `>=3.12` pour rester compatible avec Ubuntu 24.04 et faciliter le packaging.
 
 ---
 
@@ -105,7 +107,7 @@ Priorites :
 
 Definition of done globale :
 
-- [ ] La commande `uv run vox-voice-paste --help` fonctionne.
+- [x] La commande `uv run vox-voice-paste --help` fonctionne.
 - [ ] La commande `uv run vox-voice-paste --record-and-copy --mock` ouvre la fenetre et produit une transcription simulee.
 - [ ] La commande configuree dans Ubuntu est documentee : `vox-voice-paste --record-and-copy`.
 - [ ] Une dictee reelle courte copie le texte final dans le presse-papiers.
@@ -121,16 +123,16 @@ Definition of done globale :
 ### 5.1 Environnement local
 
 ```bash
-uv venv --python 3.14
+uv venv --python 3.12
 source .venv/bin/activate
 uv sync --all-extras --dev
 ```
 
 Notes :
 
-- [ ] Ajouter un `uv.lock` apres definition des dependances.
-- [ ] Documenter la version Python cible dans le README.
-- [ ] Ne pas supposer que l'utilisateur active toujours le venv : les commandes de documentation doivent preferer `uv run`.
+- [x] Ajouter un `uv.lock` apres definition des dependances.
+- [x] Documenter la version Python cible dans le README.
+- [x] Ne pas supposer que l'utilisateur active toujours le venv : les commandes de documentation doivent preferer `uv run`.
 
 ### 5.2 Commandes attendues
 
@@ -204,7 +206,7 @@ packaging/
 
 Tracking :
 
-- [ ] Valider que cette structure reste proportionnee au projet.
+- [x] Valider que cette structure reste proportionnee au projet.
 - [ ] Creer d'abord les interfaces et mocks avant les implementations systeme.
 - [ ] Eviter les imports directs entre UI et OpenAI/audio bas niveau.
 
@@ -226,10 +228,10 @@ Tracking :
 
 ### 7.2 Developpement et tests
 
-- [ ] `pytest`
+- [x] `pytest`
 - [ ] `pytest-qt`
 - [ ] `pytest-asyncio`
-- [ ] `ruff`
+- [x] `ruff`
 - [ ] `mypy` ou `pyright` si le typage strict est retenu.
 
 ### 7.3 Dependances systeme Ubuntu a documenter
@@ -248,22 +250,22 @@ Tracking :
 
 Objectif : obtenir un squelette installable et testable.
 
-- [ ] `A-001` `P0` Confirmer nom package, module et CLI.
-- [ ] `A-002` `P0` Completer `pyproject.toml` avec build backend, scripts console et dependances de base.
-- [ ] `A-003` `P0` Creer `src/vox_voice_paste`.
-- [ ] `A-004` `P0` Ajouter `__main__.py`, `main.py`, `cli.py`.
-- [ ] `A-005` `P0` Ajouter commande `vox-voice-paste --help`.
-- [ ] `A-006` `P0` Ajouter `tests/` et premier test CLI.
-- [ ] `A-007` `P1` Ajouter `ruff` et configuration minimale.
-- [ ] `A-008` `P1` Ajouter logs structures sans donnees sensibles.
-- [ ] `A-009` `P1` Creer README initial avec commandes `uv`.
-- [ ] `A-010` `P2` Initialiser Git si souhaite pour le suivi projet.
+- [x] `A-001` `P0` Confirmer nom package, module et CLI.
+- [x] `A-002` `P0` Completer `pyproject.toml` avec build backend, scripts console et dependances de base.
+- [x] `A-003` `P0` Creer `src/vox_voice_paste`.
+- [x] `A-004` `P0` Ajouter `__main__.py`, `main.py`, `cli.py`.
+- [x] `A-005` `P0` Ajouter commande `vox-voice-paste --help`.
+- [x] `A-006` `P0` Ajouter `tests/` et premier test CLI.
+- [x] `A-007` `P1` Ajouter `ruff` et configuration minimale.
+- [x] `A-008` `P1` Ajouter logs structures sans donnees sensibles.
+- [x] `A-009` `P1` Creer README initial avec commandes `uv`.
+- [x] `A-010` `P2` Initialiser Git si souhaite pour le suivi projet.
 
 Critere d'acceptation :
 
-- [ ] `uv run vox-voice-paste --help` fonctionne.
-- [ ] `uv run python -m vox_voice_paste --help` fonctionne.
-- [ ] `uv run pytest` passe.
+- [x] `uv run vox-voice-paste --help` fonctionne.
+- [x] `uv run python -m vox_voice_paste --help` fonctionne.
+- [x] `uv run pytest` passe.
 
 ### Phase B - Configuration et secrets
 
@@ -658,4 +660,3 @@ La V1.0 est prete seulement si :
 | Date | Changement | Notes |
 | --- | --- | --- |
 | 2026-05-23 | Creation du tracker | Basee sur le plan V1.0 et l'environnement local `uv` / Python 3.14.2 |
-

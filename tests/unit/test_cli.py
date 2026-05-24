@@ -1,0 +1,35 @@
+from __future__ import annotations
+
+import subprocess
+import sys
+
+from vox_voice_paste.cli import build_parser, main
+
+
+def test_build_parser_contains_expected_commands() -> None:
+    help_text = build_parser().format_help()
+
+    assert "vox-voice-paste" in help_text
+    assert "--record-and-copy" in help_text
+    assert "--list-audio-devices" in help_text
+    assert "--diagnose" in help_text
+
+
+def test_main_without_args_prints_help(capsys) -> None:
+    exit_code = main([])
+
+    captured = capsys.readouterr()
+    assert exit_code == 0
+    assert "Dictate text" in captured.out
+
+
+def test_module_help_entrypoint() -> None:
+    result = subprocess.run(
+        [sys.executable, "-m", "vox_voice_paste", "--help"],
+        check=False,
+        text=True,
+        capture_output=True,
+    )
+
+    assert result.returncode == 0
+    assert "vox-voice-paste" in result.stdout

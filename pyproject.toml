@@ -1,5 +1,34 @@
 [project]
 name = "voice2paste"
 version = "0.1.0"
-requires-python = ">=3.14"
+description = "Ubuntu desktop voice dictation helper that copies transcriptions to the clipboard."
+readme = "README.md"
+requires-python = ">=3.12"
 dependencies = []
+
+[project.scripts]
+vox-voice-paste = "vox_voice_paste.main:main"
+
+[build-system]
+requires = ["hatchling>=1.27"]
+build-backend = "hatchling.build"
+
+[dependency-groups]
+dev = [
+    "pytest>=8.4",
+    "ruff>=0.13",
+]
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/vox_voice_paste"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+
+[tool.ruff]
+line-length = 100
+src = ["src", "tests"]
+target-version = "py312"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B"]
