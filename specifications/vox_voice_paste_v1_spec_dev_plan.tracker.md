@@ -2,7 +2,7 @@
 
 Source : `specifications/vox_voice_paste_v1_spec_dev_plan.md`  
 Date de creation : 2026-05-23  
-Statut global : En cours - Phase G onboarding implementee, validations reelles restantes  
+Statut global : En cours - Phase H diagnostic/robustesse implementee, packaging et validations reelles restantes  
 Environnement cible : Ubuntu desktop, priorite GNOME / Wayland  
 Environnement local observe : `uv 0.9.17`, `.venv` present, Python `3.14.2`, depot Git initialise
 
@@ -90,7 +90,7 @@ Points a suivre :
 - [x] Ne pas faire dependre la copie presse-papiers uniquement de `QClipboard` sans validation Wayland.
   - Sous Linux, la persistance du contenu apres fermeture immediate du processus doit etre testee.
   - Prevoir un `ClipboardService` capable d'utiliser Qt, `wl-copy` sur Wayland, et `xclip` ou `xsel` sur X11 selon disponibilite.
-- [ ] Ajouter un verrou de session pour empecher deux dictees concurrentes.
+- [x] Ajouter un verrou de session pour empecher deux dictees concurrentes.
 - [x] Ajouter une strategie de timeout explicite pour finalisation OpenAI.
 - [ ] Ajouter une commande dev `--mock` utilisable avec `--record-and-copy`.
 - [ ] Ajouter une commande dev pour tester le clipboard sans OpenAI.
@@ -441,22 +441,22 @@ Critere d'acceptation :
 
 Objectif : faciliter support et debug.
 
-- [ ] `H-001` `P0` Detecter version application.
-- [ ] `H-002` `P0` Detecter version Python.
-- [ ] `H-003` `P0` Detecter desktop, Wayland/X11.
-- [ ] `H-004` `P0` Diagnostiquer audio devices.
-- [ ] `H-005` `P0` Diagnostiquer clipboard.
-- [ ] `H-006` `P0` Diagnostiquer notifications.
-- [ ] `H-007` `P0` Diagnostiquer presence cle OpenAI.
+- [x] `H-001` `P0` Detecter version application.
+- [x] `H-002` `P0` Detecter version Python.
+- [x] `H-003` `P0` Detecter desktop, Wayland/X11.
+- [x] `H-004` `P0` Diagnostiquer audio devices.
+- [x] `H-005` `P0` Diagnostiquer clipboard.
+- [x] `H-006` `P0` Diagnostiquer notifications.
+- [x] `H-007` `P0` Diagnostiquer presence cle OpenAI.
 - [ ] `H-008` `P1` Tester connexion OpenAI sans envoyer d'audio.
-- [ ] `H-009` `P0` Ajouter option `--verbose`.
-- [ ] `H-010` `P0` Ajouter verrou anti-double-dictee.
+- [x] `H-009` `P0` Ajouter option `--verbose`.
+- [x] `H-010` `P0` Ajouter verrou anti-double-dictee.
 
 Critere d'acceptation :
 
-- [ ] `uv run vox-voice-paste --diagnose` produit un rapport lisible.
-- [ ] Aucune cle, aucun audio et aucun transcript n'apparaissent.
-- [ ] Le rapport indique les actions probables a corriger.
+- [x] `uv run vox-voice-paste --diagnose` produit un rapport lisible.
+- [x] Aucune cle, aucun audio et aucun transcript n'apparaissent.
+- [x] Le rapport indique les actions probables a corriger.
 
 ### Phase I - Packaging Ubuntu
 
@@ -569,7 +569,7 @@ Critere d'acceptation release :
 - [ ] `DESK-003` `P1` Notification annulation.
 - [ ] `DESK-004` `P1` Notification erreur.
 - [ ] `DESK-005` `P1` Bouton copier texte partiel.
-- [ ] `DESK-006` `P0` Verrou session unique.
+- [x] `DESK-006` `P0` Verrou session unique.
 
 ### Epic Onboarding
 
@@ -606,9 +606,9 @@ Critere d'acceptation release :
 - [x] Normalisation du transcript final.
 - [x] Refus de copier un texte vide.
 - [x] Aggregation des deltas.
-- [ ] State machine.
+- [x] State machine.
 - [x] Diagnostic sans donnees sensibles.
-- [ ] Verrou anti-double-dictee.
+- [x] Verrou anti-double-dictee.
 
 ### Integration mock
 
@@ -640,7 +640,7 @@ Critere d'acceptation release :
 | Python 3.14 incompatible avec dependances desktop/audio | Haut | Moyen | Tester installation dependances tot; ajuster `requires-python` si besoin | [!] |
 | Clipboard perdu apres fermeture sur Wayland | Haut | Moyen | Valider `QClipboard`, ajouter fallback `wl-copy` | [!] |
 | Keyring absent ou verrouille | Moyen | Moyen | Diagnostic clair, onboarding avec message reparable | [ ] |
-| Double lancement de dictee | Moyen | Moyen | Verrou fichier/processus | [ ] |
+| Double lancement de dictee | Moyen | Moyen | Verrou fichier/processus | [x] |
 | UI bloquee par reseau | Haut | Moyen | Async worker/service, jamais d'appel reseau direct dans UI thread | [ ] |
 | Capture audio indisponible | Moyen | Moyen | Diagnostic audio, selection micro, messages clairs | [ ] |
 | Package `.deb` trop fragile | Moyen | Moyen | Choisir packaging apres prototype runtime stable | [ ] |

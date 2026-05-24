@@ -16,4 +16,7 @@ def test_diagnostic_report_shows_secret_presence_without_value(tmp_path) -> None
 
     assert "config: valid" in report
     assert "openai_api_key: present" in report
+    assert "audio_devices:" in report
+    assert "clipboard:" in report
+    assert "notifications:" in report
     assert "sk-test-secret" not in report

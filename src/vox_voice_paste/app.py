@@ -6,7 +6,7 @@ from pathlib import Path
 from PySide6.QtWidgets import QApplication
 
 from vox_voice_paste.config import load_config
-from vox_voice_paste.desktop import ClipboardService
+from vox_voice_paste.desktop import ClipboardService, SessionAlreadyRunningError, SessionLock
 from vox_voice_paste.security import KeyringSecretService, SecretService
 from vox_voice_paste.transcription import MockTranscriptionService
 from vox_voice_paste.ui.onboarding_window import OnboardingWindow
@@ -15,15 +15,20 @@ from vox_voice_paste.ui.settings_window import SettingsWindow
 
 
 def run_record_and_copy(*, mock: bool = False) -> int:
-    app = QApplication.instance() or QApplication(sys.argv[:1])
-    service = MockTranscriptionService(delay_seconds=0.05) if mock else None
-    window = RecorderWindow(
-        transcription_service=service,
-        auto_start=True,
-        close_on_success=True,
-    )
-    window.show()
-    return int(app.exec())
+    try:
+        with SessionLock():
+            app = QApplication.instance() or QApplication(sys.argv[:1])
+            service = MockTranscriptionService(delay_seconds=0.05) if mock else None
+            window = RecorderWindow(
+                transcription_service=service,
+                auto_start=True,
+                close_on_success=True,
+            )
+            window.show()
+            return int(app.exec())
+    except SessionAlreadyRunningError as exc:
+        print(f"vox-voice-paste: {exc}", file=sys.stderr)
+        return 1
 
 
 def run_main_app(
