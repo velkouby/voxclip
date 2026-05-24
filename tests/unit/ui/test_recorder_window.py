@@ -24,6 +24,13 @@ def test_recorder_window_starts_in_idle_state(qtbot) -> None:
     assert window._buffer.text == ""
 
 
+def test_recorder_window_stays_on_top(qtbot) -> None:
+    window = RecorderWindow(auto_start=False)
+    qtbot.addWidget(window)
+
+    assert window.windowFlags() & Qt.WindowType.WindowStaysOnTopHint
+
+
 def test_recorder_window_mock_transcription_reaches_success(qtbot) -> None:
     clipboard = InMemoryClipboardService()
     notifications = InMemoryNotificationService()
