@@ -37,7 +37,13 @@ GitHub release. For release `v0.2.0`, the expected asset name is:
 voxclip_0.2.0_amd64.deb
 ```
 
-Repository-hosted Debian artifacts are also listed in [RELEASES.md](RELEASES.md).
+Repository-hosted Debian artifacts are stored in [`releases/`](releases/) and
+listed in [RELEASES.md](RELEASES.md). From a clone, you can install the latest
+generated package with:
+
+```bash
+sudo apt install ./releases/voxclip_latest_amd64.deb
+```
 
 Download it from the GitHub release page, or use the GitHub CLI from a clone of
 the repository:
@@ -50,7 +56,7 @@ If you are not inside a clone, pass the repository explicitly:
 
 ```bash
 gh release download v0.2.0 \
-  --repo velkouby/voclip \
+  --repo velkouby/voxclip \
   --pattern "voxclip_0.2.0_amd64.deb" \
   --clobber
 ```
@@ -58,7 +64,7 @@ gh release download v0.2.0 \
 You can also download the asset directly with `curl`:
 
 ```bash
-curl -LO "https://github.com/velkouby/voclip/releases/download/v0.2.0/voxclip_0.2.0_amd64.deb"
+curl -LO "https://github.com/velkouby/voxclip/releases/download/v0.2.0/voxclip_0.2.0_amd64.deb"
 ```
 
 Install the package:
