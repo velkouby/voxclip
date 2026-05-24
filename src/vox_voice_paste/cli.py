@@ -7,8 +7,10 @@ from importlib.metadata import PackageNotFoundError, version
 
 from . import __version__
 from .audio import AudioDeviceError, format_input_devices, list_input_devices
+from .config import DEFAULT_UBUNTU_SHORTCUT, load_config
 from .desktop.diagnostics import build_diagnostic_lines, format_diagnostic_report
 from .logging_config import configure_logging
+from .desktop.shortcuts import DEFAULT_SHORTCUT_COMMAND
 from .security import OPENAI_API_KEY_SECRET, KeyringSecretService, SecretError, SecretService
 
 DIST_NAME = "voice2paste"
@@ -53,6 +55,26 @@ def build_parser() -> argparse.ArgumentParser:
         "--settings",
         action="store_true",
         help="open the settings window",
+    )
+    parser.add_argument(
+        "--set-ubuntu-shortcut",
+        nargs="?",
+        const=DEFAULT_UBUNTU_SHORTCUT,
+        metavar="KEY_COMBO",
+        help=(
+            "create/update the GNOME shortcut for the recorder command "
+            f"(default: {DEFAULT_UBUNTU_SHORTCUT})"
+        ),
+    )
+    parser.add_argument(
+        "--remove-ubuntu-shortcut",
+        action="store_true",
+        help="remove the managed GNOME shortcut binding and its autostart entry",
+    )
+    parser.add_argument(
+        "--ensure-ubuntu-shortcut",
+        action="store_true",
+        help=argparse.SUPPRESS,
     )
     parser.add_argument(
         "--list-audio-devices",
@@ -101,6 +123,47 @@ def main(
         from .app import run_settings
 
         return run_settings()
+
+    if args.set_ubuntu_shortcut is not None:
+        from .desktop import ShortcutInstallError, set_ubuntu_shortcut
+
+        try:
+            set_ubuntu_shortcut(
+                shortcut=args.set_ubuntu_shortcut,
+                command=DEFAULT_SHORTCUT_COMMAND,
+            )
+        except ShortcutInstallError as exc:
+            parser.exit(1, f"vox-voice-paste: {exc}\n")
+        print(
+            f"Shortcut configured: {args.set_ubuntu_shortcut} -> "
+            f"{DEFAULT_SHORTCUT_COMMAND}"
+        )
+        return 0
+
+    if args.remove_ubuntu_shortcut:
+        from .desktop import (
+            ShortcutInstallError,
+            remove_shortcut_autostart_entry,
+            remove_ubuntu_shortcut,
+        )
+
+        try:
+            remove_ubuntu_shortcut()
+            remove_shortcut_autostart_entry()
+        except ShortcutInstallError as exc:
+            parser.exit(1, f"vox-voice-paste: {exc}\n")
+        print("GNOME shortcut binding and autostart entry removed.")
+        return 0
+
+    if args.ensure_ubuntu_shortcut:
+        from .desktop import ShortcutInstallError, set_ubuntu_shortcut
+
+        config = load_config()
+        try:
+            set_ubuntu_shortcut(shortcut=config.ubuntu_shortcut)
+        except ShortcutInstallError:
+            return 0
+        return 0
 
     if args.list_audio_devices:
         try:

@@ -13,6 +13,7 @@ from pydantic import BaseModel, ConfigDict, Field, ValidationError
 APP_ID = "vox-voice-paste"
 CONFIG_FILENAME = "config.toml"
 DEFAULT_TRANSCRIPTION_MODEL = "gpt-realtime-whisper"
+DEFAULT_UBUNTU_SHORTCUT = "Ctrl+Alt+N"
 
 
 class ConfigError(RuntimeError):
@@ -28,6 +29,7 @@ class AppConfig(BaseModel):
     transcription_model: str = DEFAULT_TRANSCRIPTION_MODEL
     transcription_language: str | None = None
     transcription_delay: str = Field(default="low", pattern="^(minimal|low|medium|high|xhigh)$")
+    ubuntu_shortcut: str = DEFAULT_UBUNTU_SHORTCUT
 
 
 def default_config_path() -> Path:

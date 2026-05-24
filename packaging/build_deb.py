@@ -116,6 +116,14 @@ def _populate_package_root(
     control = control.replace("Architecture: @ARCH@", f"Architecture: {architecture}")
     (debian_dir / "control").write_text(control, encoding="utf-8")
 
+    for script in (ROOT / "packaging/debian").iterdir():
+        if script.name == "control" or not script.is_file():
+            continue
+        shutil.copy2(script, debian_dir / script.name)
+        # Maintainer scripts need executable bit in the package.
+        current_mode = (debian_dir / script.name).stat().st_mode
+        (debian_dir / script.name).chmod(current_mode | 0o111)
+
 
 def _build_application_venv(venv_dir: Path, version: str, *, offline: bool) -> None:
     subprocess.run(["uv", "venv", "--python", "/usr/bin/python3", str(venv_dir)], check=True)

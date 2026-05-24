@@ -7,7 +7,14 @@ from PySide6.QtWidgets import QApplication, QDialog
 
 from vox_voice_paste.audio import AudioDeviceError, list_input_devices
 from vox_voice_paste.config import load_config
-from vox_voice_paste.desktop import ClipboardService, SessionAlreadyRunningError, SessionLock
+from vox_voice_paste.desktop import (
+    ClipboardService,
+    SessionAlreadyRunningError,
+    SessionLock,
+    ShortcutInstallError,
+    install_shortcut_autostart_entry,
+    set_ubuntu_shortcut,
+)
 from vox_voice_paste.security import (
     OPENAI_API_KEY_SECRET,
     KeyringSecretService,
@@ -114,6 +121,7 @@ def run_main_app(
 ) -> int:
     app = QApplication.instance() or QApplication(sys.argv[:1])
     config = load_config(config_path)
+    _ensure_startup_shortcut(config=config)
     if not config.onboarding_completed:
         window = OnboardingWindow(
             config_path=config_path,
@@ -138,10 +146,25 @@ def run_settings(
     key_validator: OpenAIKeyValidator | None = None,
 ) -> int:
     app = QApplication.instance() or QApplication(sys.argv[:1])
+    config = load_config(config_path)
+    _ensure_startup_shortcut(config=config)
     window = SettingsWindow(
         config_path=config_path,
+        startup_shortcut=config.ubuntu_shortcut,
         secret_service=secret_service,
         key_validator=key_validator,
     )
     window.show()
     return int(app.exec())
+
+
+def _ensure_startup_shortcut(*, config) -> None:
+    try:
+        set_ubuntu_shortcut(shortcut=config.ubuntu_shortcut)
+    except ShortcutInstallError:
+        return
+
+    try:
+        install_shortcut_autostart_entry()
+    except ShortcutInstallError:
+        return

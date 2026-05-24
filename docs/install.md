@@ -32,10 +32,35 @@ The installed shortcut command for Ubuntu custom keyboard shortcuts is:
 vox-voice-paste --record-and-copy
 ```
 
+The app also applies this GNOME shortcut automatically on startup and installs a
+user autostart entry so the shortcut is re-applied at every GNOME login.
+
+You can also install it directly for GNOME with:
+
+```bash
+vox-voice-paste --set-ubuntu-shortcut
+```
+
+To clean the desktop integration (for removal/uninstall workflows), run:
+
+```bash
+vox-voice-paste --remove-ubuntu-shortcut
+```
+
 Uninstall the package:
 
 ```bash
 sudo apt remove vox-voice-paste
+```
+
+On Debian/Ubuntu uninstall, the package runs a best-effort cleanup of
+`vox-voice-paste` desktop-integration files and tries to remove the managed GNOME
+shortcut binding for each local user.
+
+To guarantee a full per-user cleanup, you can still run:
+
+```bash
+vox-voice-paste --remove-ubuntu-shortcut
 ```
 
 User configuration is intentionally left under the user config/keyring stores.

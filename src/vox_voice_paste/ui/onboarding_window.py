@@ -16,6 +16,7 @@ from PySide6.QtWidgets import (
 )
 
 from vox_voice_paste.audio import AudioDeviceError, AudioInputDevice, list_input_devices
+from vox_voice_paste.config import DEFAULT_UBUNTU_SHORTCUT
 from vox_voice_paste.config import load_config, save_config
 from vox_voice_paste.desktop import ClipboardError, ClipboardService, SystemClipboardService
 from vox_voice_paste.security import OpenAIHTTPKeyValidator, OpenAIKeyValidator, SecretService
@@ -23,7 +24,7 @@ from vox_voice_paste.security import OpenAIHTTPKeyValidator, OpenAIKeyValidator,
 from .api_key_dialog import OpenAIKeyDialog
 
 SHORTCUT_COMMAND = "vox-voice-paste --record-and-copy"
-RECOMMENDED_SHORTCUT = "Ctrl+Alt+V"
+RECOMMENDED_SHORTCUT = DEFAULT_UBUNTU_SHORTCUT
 
 
 class OnboardingWindow(QDialog):

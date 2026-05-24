@@ -131,10 +131,40 @@ Configurer un raccourci clavier Ubuntu personnalise qui execute :
 vox-voice-paste --record-and-copy
 ```
 
-Raccourci recommande : `Ctrl+Alt+V`.
+Raccourci recommande : `Ctrl+Alt+N`.
 
-Il n'y a pas de raccourci global installe automatiquement en V1 : Ubuntu gere
-le raccourci, l'application fournit seulement la commande a executer.
+Vous pouvez aussi appliquer directement le raccourci recommandé via :
+
+```bash
+vox-voice-paste --set-ubuntu-shortcut
+```
+
+ou choisir un raccourci perso :
+
+```bash
+vox-voice-paste --set-ubuntu-shortcut Ctrl+Alt+K
+```
+
+Pour un nettoyage propre (désinstallation de l'application, changement d'utilisateur, etc.), utilisez :
+
+```bash
+vox-voice-paste --remove-ubuntu-shortcut
+```
+
+Cette commande supprime le raccourci GNOME géré par l'application et son autostart.
+
+Le raccourci est configurable manuellement, ou installable en un clic via :
+
+```bash
+vox-voice-paste --set-ubuntu-shortcut
+```
+
+Au premier démarrage et à chaque ouverture de fenêtre, l'application tente
+d'installer le raccourci GNOME si votre session est compatible. Un .desktop
+en autostart est créé pour ré-appliquer ce raccourci à chaque login GNOME.
+
+Dans Paramètres, utilisez **Installer le raccourci GNOME** pour appliquer
+immédiatement une combinaison personnalisée.
 
 Flux utilisateur :
 

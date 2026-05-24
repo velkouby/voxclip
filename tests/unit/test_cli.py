@@ -4,6 +4,7 @@ import subprocess
 import sys
 
 from vox_voice_paste.audio import AudioInputDevice
+from vox_voice_paste.ui.onboarding_window import RECOMMENDED_SHORTCUT, SHORTCUT_COMMAND
 from vox_voice_paste.cli import build_parser, main
 from vox_voice_paste.security import OPENAI_API_KEY_SECRET, InMemorySecretService
 
@@ -13,9 +14,68 @@ def test_build_parser_contains_expected_commands() -> None:
 
     assert "vox-voice-paste" in help_text
     assert "--record-and-copy" in help_text
+    assert "--set-ubuntu-shortcut" in help_text
+    assert "--remove-ubuntu-shortcut" in help_text
     assert "--list-audio-devices" in help_text
     assert "--diagnose" in help_text
     assert "--check-openai-key" in help_text
+
+
+def test_set_ubuntu_shortcut_default_binding_runs_for_default_command(monkeypatch) -> None:
+    recorded = {}
+
+    def fake_set_ubuntu_shortcut(*, shortcut: str, command: str) -> str:
+        recorded["shortcut"] = shortcut
+        recorded["command"] = command
+        return "/org/gnome/settings-daemon/plugins/media-keys/custom-keybindings/custom0/"
+
+    monkeypatch.setattr("vox_voice_paste.desktop.set_ubuntu_shortcut", fake_set_ubuntu_shortcut)
+
+    assert main(["--set-ubuntu-shortcut"]) == 0
+
+    assert recorded["shortcut"] == RECOMMENDED_SHORTCUT
+    assert recorded["command"] == SHORTCUT_COMMAND
+
+
+def test_set_ubuntu_shortcut_accepts_custom_binding(monkeypatch) -> None:
+    recorded = {}
+
+    def fake_set_ubuntu_shortcut(*, shortcut: str, command: str) -> str:
+        recorded["shortcut"] = shortcut
+        recorded["command"] = command
+        return "/org/gnome/settings-daemon/plugins/media-keys/custom-keybindings/custom0/"
+
+    monkeypatch.setattr("vox_voice_paste.desktop.set_ubuntu_shortcut", fake_set_ubuntu_shortcut)
+
+    assert main(["--set-ubuntu-shortcut", "Ctrl+Alt+K"]) == 0
+
+    assert recorded["shortcut"] == "Ctrl+Alt+K"
+    assert recorded["command"] == SHORTCUT_COMMAND
+
+
+def test_remove_ubuntu_shortcut_runs_cleanup(monkeypatch) -> None:
+    removed = {}
+
+    def fake_remove_ubuntu_shortcut() -> list[str]:
+        removed["binding"] = "removed"
+        return ["/org/gnome/settings-daemon/plugins/media-keys/custom-keybindings/custom0/"]
+
+    def fake_remove_shortcut_autostart_entry() -> None:
+        removed["autostart"] = "removed"
+
+    monkeypatch.setattr(
+        "vox_voice_paste.desktop.remove_ubuntu_shortcut",
+        fake_remove_ubuntu_shortcut,
+    )
+    monkeypatch.setattr(
+        "vox_voice_paste.desktop.remove_shortcut_autostart_entry",
+        fake_remove_shortcut_autostart_entry,
+    )
+
+    assert main(["--remove-ubuntu-shortcut"]) == 0
+
+    assert removed["binding"] == "removed"
+    assert removed["autostart"] == "removed"
 
 
 def test_main_without_args_runs_main_app(monkeypatch) -> None:
