@@ -38,8 +38,8 @@ voxclip_0.2.0_amd64.deb
 ```
 
 Repository-hosted Debian artifacts are stored in [`releases/`](releases/) and
-listed in [RELEASES.md](RELEASES.md). From a clone, you can install the latest
-generated package with:
+listed in [releases/README.md](releases/README.md). From a clone, you can
+install the latest generated package with:
 
 ```bash
 sudo apt install ./releases/voxclip_latest_amd64.deb

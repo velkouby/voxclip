@@ -4,7 +4,7 @@ set -euo pipefail
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 DIST_DIR="$ROOT_DIR/dist"
 RELEASES_DIR="$ROOT_DIR/releases"
-RELEASES_PAGE="$ROOT_DIR/RELEASES.md"
+RELEASES_PAGE="$RELEASES_DIR/README.md"
 PACKAGE_NAME="voxclip"
 
 cd "$ROOT_DIR"
@@ -99,7 +99,7 @@ lines = [
 if latest_path.exists():
     lines.extend(
         [
-            f"- Download: [{latest_name}](releases/{latest_name})",
+            f"- Download: [{latest_name}](./{latest_name})",
             f"- SHA256: `{sha256(latest_path)}`",
             f"- Size: {size_label(latest_path)}",
             "",
@@ -119,7 +119,7 @@ if packages:
     )
     for package in packages:
         lines.append(
-            "| {version} | {arch} | [{name}](releases/{name}) | `{sha256}` | {size} |".format(
+            "| {version} | {arch} | [{name}](./{name}) | `{sha256}` | {size} |".format(
                 **package
             )
         )
@@ -132,4 +132,4 @@ PY
 
 echo "Release package: releases/$DEB_NAME"
 echo "Latest package: releases/$LATEST_NAME"
-echo "Release page: RELEASES.md"
+echo "Release page: releases/README.md"
