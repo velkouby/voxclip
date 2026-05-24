@@ -1,8 +1,11 @@
 from __future__ import annotations
 
+import asyncio
+import threading
+from collections.abc import AsyncIterator, Callable
 from enum import StrEnum
 
-from PySide6.QtCore import Qt, QTimer, Slot
+from PySide6.QtCore import QObject, Qt, QTimer, Signal, Slot
 from PySide6.QtGui import QCloseEvent, QKeyEvent, QTextCursor
 from PySide6.QtWidgets import (
     QComboBox,
@@ -15,6 +18,9 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
+from vox_voice_paste.audio import AudioCaptureError, AudioChunk, MicrophoneCapture
+from vox_voice_paste.audio.capture import MicrophoneCaptureConfig
+from vox_voice_paste.audio.devices import AudioInputDevice
 from vox_voice_paste.desktop import (
     ClipboardError,
     ClipboardService,
@@ -44,11 +50,76 @@ class RecorderState(StrEnum):
     CANCELLED = "cancelled"
 
 
+AudioSourceFactory = Callable[
+    [str | None, threading.Event, threading.Event],
+    AsyncIterator[AudioChunk | bytes],
+]
+
+
+class ThreadedTranscriptionRunner(QObject):
+    event_received = Signal(object)
+    level_received = Signal(float)
+    failed = Signal(str)
+    finished = Signal()
+
+    def __init__(
+        self,
+        *,
+        service: TranscriptionService,
+        audio_source_factory: AudioSourceFactory,
+        device_id: str | None,
+    ) -> None:
+        super().__init__()
+        self._service = service
+        self._audio_source_factory = audio_source_factory
+        self._device_id = device_id
+        self._stop_requested = threading.Event()
+        self._cancel_requested = threading.Event()
+        self._thread = threading.Thread(target=self._run, daemon=True)
+
+    def start(self) -> None:
+        self._thread.start()
+
+    def stop(self) -> None:
+        self._stop_requested.set()
+
+    def cancel(self) -> None:
+        self._cancel_requested.set()
+        self._stop_requested.set()
+
+    def join(self, timeout: float = 1.0) -> None:
+        if self._thread.is_alive():
+            self._thread.join(timeout)
+
+    def _run(self) -> None:
+        try:
+            asyncio.run(self._run_async())
+        except Exception as exc:
+            if not self._cancel_requested.is_set():
+                self.failed.emit(str(exc) or "Transcription failed.")
+        finally:
+            self.finished.emit()
+
+    async def _run_async(self) -> None:
+        source = self._audio_source_factory(
+            self._device_id,
+            self._stop_requested,
+            self._cancel_requested,
+        )
+        audio_chunks = _with_level_signal(source, self.level_received)
+        async for event in self._service.transcribe(audio_chunks):
+            if self._cancel_requested.is_set():
+                return
+            self.event_received.emit(event)
+
+
 class RecorderWindow(QDialog):
     def __init__(
         self,
         *,
         transcription_service: TranscriptionService | None = None,
+        audio_source_factory: AudioSourceFactory | None = None,
+        input_devices: list[AudioInputDevice] | None = None,
         clipboard_service: ClipboardService | None = None,
         notification_service: NotificationService | None = None,
         auto_start: bool = False,
@@ -57,6 +128,8 @@ class RecorderWindow(QDialog):
     ) -> None:
         super().__init__(parent)
         self._service = transcription_service or MockTranscriptionService()
+        self._audio_source_factory = audio_source_factory or microphone_audio_source
+        self._input_devices = input_devices or []
         self._clipboard = clipboard_service or SystemClipboardService()
         self._notifications = notification_service or DesktopNotificationService()
         self._close_on_success = close_on_success
@@ -65,6 +138,7 @@ class RecorderWindow(QDialog):
         self._level_value = 0
         self._mock_words: list[str] = []
         self._mock_word_index = 0
+        self._runner: ThreadedTranscriptionRunner | None = None
 
         self._build_ui()
         self._level_timer = QTimer(self)
@@ -90,6 +164,9 @@ class RecorderWindow(QDialog):
         self.status_label = QLabel()
         self.device_combo = QComboBox()
         self.device_combo.addItem("Micro par defaut", None)
+        for device in self._input_devices:
+            marker = " (defaut)" if device.is_default else ""
+            self.device_combo.addItem(f"{device.name}{marker}", device.id)
 
         self.level_meter = create_level_meter()
         self.transcript_edit = QTextEdit()
@@ -155,25 +232,42 @@ class RecorderWindow(QDialog):
         self.set_state(RecorderState.RECORDING)
         self._level_timer.start(80)
 
-        if not isinstance(self._service, MockTranscriptionService):
-            self._handle_error("Real transcription UI is not implemented yet.")
+        if isinstance(self._service, MockTranscriptionService):
+            self._mock_words = self._service.transcript.split()
+            self._mock_word_index = 0
+            interval_ms = max(1, round(self._service.delay_seconds * 1000))
+            self._mock_timer.start(interval_ms)
             return
 
-        self._mock_words = self._service.transcript.split()
-        self._mock_word_index = 0
-        interval_ms = max(1, round(self._service.delay_seconds * 1000))
-        self._mock_timer.start(interval_ms)
+        if not hasattr(self._service, "transcribe"):
+            self._handle_error("Transcription service is unavailable.")
+            return
+
+        self._runner = ThreadedTranscriptionRunner(
+            service=self._service,
+            audio_source_factory=self._audio_source_factory,
+            device_id=self.device_combo.currentData(),
+        )
+        self._runner.event_received.connect(self._handle_transcription_event)
+        self._runner.level_received.connect(self._set_level)
+        self._runner.failed.connect(self._handle_error)
+        self._runner.finished.connect(self._runner_finished)
+        self._runner.start()
 
     @Slot()
     def stop_recording(self) -> None:
         if self._state is not RecorderState.RECORDING:
             return
         self.set_state(RecorderState.STOPPING)
+        if self._runner is not None:
+            self._runner.stop()
         QTimer.singleShot(120, self._mark_transcribing_final)
 
     @Slot()
     def cancel(self) -> None:
         self._mock_timer.stop()
+        if self._runner is not None:
+            self._runner.cancel()
         self._level_timer.stop()
         self.set_state(RecorderState.CANCELLED)
         QTimer.singleShot(120, self.close)
@@ -229,6 +323,14 @@ class RecorderWindow(QDialog):
             self.set_state(RecorderState.TRANSCRIBING_FINAL)
 
     @Slot()
+    def _runner_finished(self) -> None:
+        self._runner = None
+
+    @Slot(float)
+    def _set_level(self, level: float) -> None:
+        self.level_meter.setValue(round(level * 100))
+
+    @Slot()
     def _emit_mock_transcription_event(self) -> None:
         if not isinstance(self._service, MockTranscriptionService):
             self._mock_timer.stop()
@@ -265,6 +367,9 @@ class RecorderWindow(QDialog):
     def closeEvent(self, event: QCloseEvent) -> None:
         self._mock_timer.stop()
         self._level_timer.stop()
+        if self._runner is not None:
+            self._runner.cancel()
+            self._runner.join()
         super().closeEvent(event)
 
 
@@ -287,3 +392,30 @@ def _primary_button_text(state: RecorderState) -> str:
     if state is RecorderState.RECORDING:
         return "Arreter"
     return "Traitement"
+
+
+async def microphone_audio_source(
+    device_id: str | None,
+    stop_requested: threading.Event,
+    cancel_requested: threading.Event,
+) -> AsyncIterator[AudioChunk]:
+    config = MicrophoneCaptureConfig(device_id=device_id)
+    try:
+        with MicrophoneCapture(config) as capture:
+            while not stop_requested.is_set() and not cancel_requested.is_set():
+                chunk = capture.read(timeout=0.05)
+                if chunk is not None:
+                    yield chunk
+                await asyncio.sleep(0)
+    except AudioCaptureError as exc:
+        raise RuntimeError(str(exc)) from exc
+
+
+async def _with_level_signal(
+    source: AsyncIterator[AudioChunk | bytes],
+    level_signal: Signal,
+) -> AsyncIterator[AudioChunk | bytes]:
+    async for chunk in source:
+        if isinstance(chunk, AudioChunk):
+            level_signal.emit(chunk.rms)
+        yield chunk

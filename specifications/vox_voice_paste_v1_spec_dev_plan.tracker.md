@@ -2,7 +2,7 @@
 
 Source : `specifications/vox_voice_paste_v1_spec_dev_plan.md`  
 Date de creation : 2026-05-23  
-Statut global : En cours - Phase I packaging local implemente, installation Ubuntu propre et validations reelles restantes  
+Statut global : En cours - flux reel cable, installation Ubuntu propre et validations reelles restantes  
 Environnement cible : Ubuntu desktop, priorite GNOME / Wayland  
 Environnement local observe : `uv 0.9.17`, `.venv` present, Python `3.14.2`, depot Git initialise
 
@@ -121,7 +121,7 @@ Definition of done globale :
 - [x] La commande configuree dans Ubuntu est documentee : `vox-voice-paste --record-and-copy`.
 - [ ] Une dictee reelle courte copie le texte final dans le presse-papiers.
 - [ ] L'annulation ne modifie pas le presse-papiers.
-- [ ] Une erreur reseau ou OpenAI ne provoque pas de crash.
+- [x] Une erreur reseau ou OpenAI ne provoque pas de crash.
 - [x] Le diagnostic ne revele aucune donnee sensible.
 - [ ] Les tests unitaires et les tests d'integration mock passent via `uv run pytest`.
 
@@ -365,7 +365,7 @@ Objectif : fournir le flux utilisateur principal.
 - [x] `E-008` `P0` Gerer `Entree` pour arreter.
 - [x] `E-009` `P0` Gerer `Echap` pour annuler.
 - [x] `E-010` `P0` Connecter audio + transcription mock.
-- [ ] `E-011` `P0` Connecter audio + transcription reelle.
+- [x] `E-011` `P0` Connecter audio + transcription reelle.
 - [x] `E-012` `P0` Implementer state machine UI.
 - [x] `E-013` `P1` Gerer fermeture forcee sans fuite de capture audio.
 - [x] `E-014` `P1` Tester avec `pytest-qt`.

@@ -93,11 +93,9 @@ def main(
     secrets = secret_service or KeyringSecretService()
 
     if args.record_and_copy:
-        if not args.mock:
-            parser.exit(1, "vox-voice-paste: real recording UI is not implemented yet\n")
         from .app import run_record_and_copy
 
-        return run_record_and_copy(mock=True)
+        return run_record_and_copy(mock=args.mock)
 
     if args.settings:
         from .app import run_settings

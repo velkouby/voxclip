@@ -78,6 +78,14 @@ def test_record_and_copy_mock_runs_app(monkeypatch) -> None:
     assert main(["--record-and-copy", "--mock"]) == 23
 
 
+def test_record_and_copy_real_runs_app(monkeypatch) -> None:
+    import vox_voice_paste.app
+
+    monkeypatch.setattr(vox_voice_paste.app, "run_record_and_copy", lambda *, mock: 29)
+
+    assert main(["--record-and-copy"]) == 29
+
+
 def test_settings_runs_settings_window(monkeypatch) -> None:
     import vox_voice_paste.app
 
