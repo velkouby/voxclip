@@ -1,0 +1,10 @@
+[Desktop Entry]
+Type=Application
+Name=VoxClip
+Comment=Dictate text and copy the transcription to the clipboard
+Exec=voxclip
+TryExec=voxclip
+Icon=voxclip
+Terminal=false
+Categories=Utility;AudioVideo;Audio;
+StartupNotify=true
