@@ -23,6 +23,7 @@ from vox_voice_paste.security import OpenAIHTTPKeyValidator, OpenAIKeyValidator,
 from .api_key_dialog import OpenAIKeyDialog
 
 SHORTCUT_COMMAND = "vox-voice-paste --record-and-copy"
+RECOMMENDED_SHORTCUT = "Ctrl+Alt+V"
 
 
 class OnboardingWindow(QDialog):
@@ -124,6 +125,7 @@ class OnboardingWindow(QDialog):
         layout = QVBoxLayout()
         layout.addWidget(QLabel("Raccourci Ubuntu"))
         layout.addWidget(QLabel("Configurez un raccourci personnalise avec cette commande."))
+        layout.addWidget(QLabel(f"Raccourci recommande : {RECOMMENDED_SHORTCUT}"))
         layout.addWidget(self.shortcut_command)
         layout.addWidget(self.copy_shortcut_button)
         layout.addWidget(self.shortcut_status)

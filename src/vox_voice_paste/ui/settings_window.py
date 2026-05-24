@@ -14,7 +14,7 @@ from vox_voice_paste.security import (
 )
 
 from .api_key_dialog import OpenAIKeyDialog
-from .onboarding_window import SHORTCUT_COMMAND
+from .onboarding_window import RECOMMENDED_SHORTCUT, SHORTCUT_COMMAND
 
 
 class SettingsWindow(QDialog):
@@ -44,6 +44,7 @@ class SettingsWindow(QDialog):
         layout.addWidget(QLabel("Vox Voice Paste"))
         layout.addWidget(QLabel(f"Configuration: {resolved_config_path}"))
         layout.addWidget(QLabel(f"Commande raccourci: {SHORTCUT_COMMAND}"))
+        layout.addWidget(QLabel(f"Raccourci recommande: {RECOMMENDED_SHORTCUT}"))
         layout.addWidget(self.configure_key_button)
         layout.addWidget(self.key_status)
         layout.addWidget(close_button)

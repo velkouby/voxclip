@@ -118,6 +118,11 @@ Configurer un raccourci clavier Ubuntu personnalise qui execute :
 vox-voice-paste --record-and-copy
 ```
 
+Raccourci recommande : `Ctrl+Alt+V`.
+
+Il n'y a pas de raccourci global installe automatiquement en V1 : Ubuntu gere
+le raccourci, l'application fournit seulement la commande a executer.
+
 Flux utilisateur :
 
 1. Placez le curseur dans le champ texte cible.
