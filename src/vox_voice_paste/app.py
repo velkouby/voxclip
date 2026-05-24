@@ -3,7 +3,7 @@ from __future__ import annotations
 import sys
 from pathlib import Path
 
-from PySide6.QtWidgets import QApplication
+from PySide6.QtWidgets import QApplication, QDialog
 
 from vox_voice_paste.audio import AudioDeviceError, list_input_devices
 from vox_voice_paste.config import load_config
@@ -11,6 +11,8 @@ from vox_voice_paste.desktop import ClipboardService, SessionAlreadyRunningError
 from vox_voice_paste.security import (
     OPENAI_API_KEY_SECRET,
     KeyringSecretService,
+    OpenAIHTTPKeyValidator,
+    OpenAIKeyValidator,
     SecretError,
     SecretService,
 )
@@ -19,22 +21,34 @@ from vox_voice_paste.transcription import (
     OpenAIRealtimeTranscriptionService,
     TranscriptionConfig,
 )
+from vox_voice_paste.ui.api_key_dialog import OpenAIKeyDialog
 from vox_voice_paste.ui.onboarding_window import OnboardingWindow
 from vox_voice_paste.ui.recorder_window import RecorderWindow
 from vox_voice_paste.ui.settings_window import SettingsWindow
 
 
-def run_record_and_copy(*, mock: bool = False) -> int:
+def run_record_and_copy(
+    *,
+    mock: bool = False,
+    secret_service: SecretService | None = None,
+    key_validator: OpenAIKeyValidator | None = None,
+) -> int:
     try:
         with SessionLock():
             app = QApplication.instance() or QApplication(sys.argv[:1])
             config = load_config()
             devices = _input_devices()
-            service = (
-                MockTranscriptionService(delay_seconds=0.05)
-                if mock
-                else _openai_transcription_service(config)
-            )
+            if mock:
+                service = MockTranscriptionService(delay_seconds=0.05)
+            else:
+                secrets = secret_service or KeyringSecretService()
+                api_key = _api_key_or_prompt(
+                    secret_service=secrets,
+                    key_validator=key_validator,
+                )
+                if api_key is None:
+                    return 1
+                service = _openai_transcription_service(config, api_key=api_key)
             window = RecorderWindow(
                 transcription_service=service,
                 input_devices=devices,
@@ -48,13 +62,32 @@ def run_record_and_copy(*, mock: bool = False) -> int:
         return 1
 
 
-def _openai_transcription_service(config) -> OpenAIRealtimeTranscriptionService:
-    secrets = KeyringSecretService()
+def _api_key_or_prompt(
+    *,
+    secret_service: SecretService,
+    key_validator: OpenAIKeyValidator | None = None,
+) -> str | None:
     try:
-        api_key = secrets.get_secret(OPENAI_API_KEY_SECRET)
+        api_key = secret_service.get_secret(OPENAI_API_KEY_SECRET)
     except SecretError:
         api_key = None
+    if api_key:
+        return api_key
 
+    dialog = OpenAIKeyDialog(
+        secret_service=secret_service,
+        key_validator=key_validator or OpenAIHTTPKeyValidator(),
+    )
+    if dialog.exec() != QDialog.DialogCode.Accepted:
+        return None
+
+    try:
+        return secret_service.get_secret(OPENAI_API_KEY_SECRET)
+    except SecretError:
+        return None
+
+
+def _openai_transcription_service(config, *, api_key: str) -> OpenAIRealtimeTranscriptionService:
     return OpenAIRealtimeTranscriptionService(
         TranscriptionConfig(
             api_key=api_key,
@@ -76,6 +109,7 @@ def run_main_app(
     *,
     config_path: Path | None = None,
     secret_service: SecretService | None = None,
+    key_validator: OpenAIKeyValidator | None = None,
     clipboard_service: ClipboardService | None = None,
 ) -> int:
     app = QApplication.instance() or QApplication(sys.argv[:1])
@@ -84,16 +118,30 @@ def run_main_app(
         window = OnboardingWindow(
             config_path=config_path,
             secret_service=secret_service or KeyringSecretService(),
+            key_validator=key_validator,
             clipboard_service=clipboard_service,
         )
     else:
-        window = SettingsWindow(config_path=config_path)
+        window = SettingsWindow(
+            config_path=config_path,
+            secret_service=secret_service,
+            key_validator=key_validator,
+        )
     window.show()
     return int(app.exec())
 
 
-def run_settings(*, config_path: Path | None = None) -> int:
+def run_settings(
+    *,
+    config_path: Path | None = None,
+    secret_service: SecretService | None = None,
+    key_validator: OpenAIKeyValidator | None = None,
+) -> int:
     app = QApplication.instance() or QApplication(sys.argv[:1])
-    window = SettingsWindow(config_path=config_path)
+    window = SettingsWindow(
+        config_path=config_path,
+        secret_service=secret_service,
+        key_validator=key_validator,
+    )
     window.show()
     return int(app.exec())

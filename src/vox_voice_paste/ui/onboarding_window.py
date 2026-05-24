@@ -18,13 +18,9 @@ from PySide6.QtWidgets import (
 from vox_voice_paste.audio import AudioDeviceError, AudioInputDevice, list_input_devices
 from vox_voice_paste.config import load_config, save_config
 from vox_voice_paste.desktop import ClipboardError, ClipboardService, SystemClipboardService
-from vox_voice_paste.security import (
-    OPENAI_API_KEY_SECRET,
-    OpenAIHTTPKeyValidator,
-    OpenAIKeyValidator,
-    SecretError,
-    SecretService,
-)
+from vox_voice_paste.security import OpenAIHTTPKeyValidator, OpenAIKeyValidator, SecretService
+
+from .api_key_dialog import OpenAIKeyDialog
 
 SHORTCUT_COMMAND = "vox-voice-paste --record-and-copy"
 
@@ -164,17 +160,18 @@ class OnboardingWindow(QDialog):
         if not value:
             self.key_status.setText("Cle vide.")
             return
-        try:
-            validation = self._key_validator.validate(value)
-            if not validation.ok:
-                self.key_status.setText(validation.message)
-                return
-            self._secrets.set_secret(OPENAI_API_KEY_SECRET, value)
-        except SecretError as exc:
-            self.key_status.setText(str(exc))
-            return
-        self.key_input.clear()
-        self.key_status.setText("Cle valide et enregistree dans le keyring.")
+        dialog = OpenAIKeyDialog(
+            secret_service=self._secrets,
+            key_validator=self._key_validator,
+            parent=self,
+        )
+        dialog.key_input.setText(value)
+        dialog.save_key()
+        if dialog.result() == QDialog.DialogCode.Accepted:
+            self.key_input.clear()
+            self.key_status.setText("Cle valide et enregistree dans le keyring.")
+        else:
+            self.key_status.setText(dialog.status_label.text())
 
     @Slot()
     def copy_shortcut_command(self) -> None:
