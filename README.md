@@ -15,6 +15,9 @@ Install and run through `uv`:
 ```bash
 uv sync --all-extras --dev
 uv run vox-voice-paste --help
+uv run vox-voice-paste --diagnose
+uv run vox-voice-paste --check-openai-key
+uv run vox-voice-paste --set-openai-key
 uv run python -m vox_voice_paste --help
 uv run pytest
 uv run ruff check .
@@ -24,6 +27,10 @@ The project targets Python `>=3.12`.
 
 The distribution package is `voice2paste`, the Python module is
 `vox_voice_paste`, and the user-facing command is `vox-voice-paste`.
+
+Configuration is stored under the user config directory. The OpenAI API key is
+stored separately in the system keyring and is never written to `config.toml` or
+shown in diagnostics.
 
 ## Product Constraints
 

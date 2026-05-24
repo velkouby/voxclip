@@ -46,7 +46,12 @@ La V1.0 ne doit pas faire de collage automatique.
 name = "voice2paste"
 version = "0.1.0"
 requires-python = ">=3.12"
-dependencies = []
+dependencies = [
+    "keyring>=25.7",
+    "platformdirs>=4.5",
+    "pydantic>=2.12",
+    "tomli-w>=1.2",
+]
 ```
 
 Points a suivre :
@@ -113,7 +118,7 @@ Definition of done globale :
 - [ ] Une dictee reelle courte copie le texte final dans le presse-papiers.
 - [ ] L'annulation ne modifie pas le presse-papiers.
 - [ ] Une erreur reseau ou OpenAI ne provoque pas de crash.
-- [ ] Le diagnostic ne revele aucune donnee sensible.
+- [x] Le diagnostic ne revele aucune donnee sensible.
 - [ ] Les tests unitaires et les tests d'integration mock passent via `uv run pytest`.
 
 ---
@@ -143,6 +148,9 @@ uv run vox-voice-paste --record-and-copy --mock
 uv run vox-voice-paste --record-and-copy
 uv run vox-voice-paste --list-audio-devices
 uv run vox-voice-paste --diagnose
+uv run vox-voice-paste --check-openai-key
+uv run vox-voice-paste --set-openai-key
+uv run vox-voice-paste --delete-openai-key
 uv run pytest
 ```
 
@@ -220,10 +228,11 @@ Tracking :
 - [ ] `sounddevice` - capture micro.
 - [ ] `numpy` - traitement audio et RMS.
 - [ ] `openai` ou `websockets` - client Realtime Transcription, a choisir apres prototype.
-- [ ] `platformdirs` - chemins de configuration utilisateur.
-- [ ] `pydantic` - validation config.
-- [ ] `PyYAML` ou format TOML natif - persistance config.
-- [ ] `keyring` - stockage cle OpenAI.
+- [x] `platformdirs` - chemins de configuration utilisateur.
+- [x] `pydantic` - validation config.
+- [x] `PyYAML` ou format TOML natif - persistance config.
+  - Decision : lecture via `tomllib`, ecriture via `tomli-w`.
+- [x] `keyring` - stockage cle OpenAI.
 - [ ] `dbus-next` ou fallback `notify-send` - notifications.
 
 ### 7.2 Developpement et tests
@@ -271,20 +280,20 @@ Critere d'acceptation :
 
 Objectif : gerer config utilisateur et cle OpenAI proprement.
 
-- [ ] `B-001` `P0` Definir modele de configuration.
-- [ ] `B-002` `P0` Definir chemin config via `platformdirs`.
-- [ ] `B-003` `P0` Implementer lecture/ecriture atomique.
-- [ ] `B-004` `P0` Implementer `SecretService` base.
-- [ ] `B-005` `P0` Implementer stockage keyring.
-- [ ] `B-006` `P1` Ajouter commande dev pour definir ou supprimer la cle OpenAI.
-- [ ] `B-007` `P0` Masquer secrets dans logs et diagnostics.
-- [ ] `B-008` `P1` Tester config absente, config invalide, keyring indisponible.
+- [x] `B-001` `P0` Definir modele de configuration.
+- [x] `B-002` `P0` Definir chemin config via `platformdirs`.
+- [x] `B-003` `P0` Implementer lecture/ecriture atomique.
+- [x] `B-004` `P0` Implementer `SecretService` base.
+- [x] `B-005` `P0` Implementer stockage keyring.
+- [x] `B-006` `P1` Ajouter commande dev pour definir ou supprimer la cle OpenAI.
+- [x] `B-007` `P0` Masquer secrets dans logs et diagnostics.
+- [x] `B-008` `P1` Tester config absente, config invalide, keyring indisponible.
 
 Critere d'acceptation :
 
-- [ ] La cle n'est jamais ecrite dans le fichier de config.
-- [ ] Le diagnostic indique seulement presence/absence de cle.
-- [ ] Les tests unitaires couvrent config et secrets.
+- [x] La cle n'est jamais ecrite dans le fichier de config.
+- [x] Le diagnostic indique seulement presence/absence de cle.
+- [x] Les tests unitaires couvrent config et secrets.
 
 ### Phase C - Audio devices et capture
 
@@ -494,14 +503,14 @@ Critere d'acceptation release :
 - [ ] `CLI-001` `P0` Creer commande `vox-voice-paste`.
 - [ ] `CLI-002` `P0` Ajouter `--record-and-copy`.
 - [ ] `CLI-003` `P1` Ajouter `--settings`.
-- [ ] `CLI-004` `P0` Ajouter `--diagnose`.
+- [x] `CLI-004` `P0` Ajouter `--diagnose`.
 - [ ] `CLI-005` `P0` Ajouter `--mock`.
 - [ ] `CLI-006` `P1` Ajouter `--list-audio-devices`.
-- [ ] `CFG-001` `P0` Creer modele de config.
-- [ ] `CFG-002` `P0` Persister config utilisateur.
+- [x] `CFG-001` `P0` Creer modele de config.
+- [x] `CFG-002` `P0` Persister config utilisateur.
 - [ ] `CFG-003` `P1` Ajouter migration config versionnee.
-- [ ] `SEC-001` `P0` Stocker cle OpenAI dans keyring.
-- [ ] `SEC-002` `P0` Masquer secrets dans logs.
+- [x] `SEC-001` `P0` Stocker cle OpenAI dans keyring.
+- [x] `SEC-002` `P0` Masquer secrets dans logs.
 
 ### Epic Audio
 
@@ -574,17 +583,17 @@ Critere d'acceptation release :
 
 ### Unitaires
 
-- [ ] Config par defaut.
-- [ ] Serialization/deserialization config.
-- [ ] Config invalide.
-- [ ] Absence de cle OpenAI.
-- [ ] Presence de cle OpenAI sans affichage.
-- [ ] Masquage secrets dans logs.
+- [x] Config par defaut.
+- [x] Serialization/deserialization config.
+- [x] Config invalide.
+- [x] Absence de cle OpenAI.
+- [x] Presence de cle OpenAI sans affichage.
+- [x] Masquage secrets dans logs.
 - [ ] Normalisation du transcript final.
 - [ ] Refus de copier un texte vide.
 - [ ] Aggregation des deltas.
 - [ ] State machine.
-- [ ] Diagnostic sans donnees sensibles.
+- [x] Diagnostic sans donnees sensibles.
 - [ ] Verrou anti-double-dictee.
 
 ### Integration mock

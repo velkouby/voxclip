@@ -1,11 +1,14 @@
 from __future__ import annotations
 
 import argparse
+import getpass
 from collections.abc import Sequence
 from importlib.metadata import PackageNotFoundError, version
 
 from . import __version__
+from .desktop.diagnostics import build_diagnostic_lines, format_diagnostic_report
 from .logging_config import configure_logging
+from .security import OPENAI_API_KEY_SECRET, KeyringSecretService, SecretError, SecretService
 
 DIST_NAME = "voice2paste"
 
@@ -60,13 +63,33 @@ def build_parser() -> argparse.ArgumentParser:
         action="store_true",
         help="print a diagnostic report without secrets, audio, or transcripts",
     )
+    parser.add_argument(
+        "--set-openai-key",
+        action="store_true",
+        help="prompt for an OpenAI API key and store it in the system keyring",
+    )
+    parser.add_argument(
+        "--delete-openai-key",
+        action="store_true",
+        help="delete the stored OpenAI API key from the system keyring",
+    )
+    parser.add_argument(
+        "--check-openai-key",
+        action="store_true",
+        help="print whether an OpenAI API key is present without showing it",
+    )
     return parser
 
 
-def main(argv: Sequence[str] | None = None) -> int:
+def main(
+    argv: Sequence[str] | None = None,
+    *,
+    secret_service: SecretService | None = None,
+) -> int:
     parser = build_parser()
     args = parser.parse_args(argv)
     configure_logging(verbose=args.verbose)
+    secrets = secret_service or KeyringSecretService()
 
     if args.record_and_copy:
         mode = "mock " if args.mock else ""
@@ -79,7 +102,36 @@ def main(argv: Sequence[str] | None = None) -> int:
         parser.exit(1, "vox-voice-paste: audio device listing is not implemented yet\n")
 
     if args.diagnose:
-        parser.exit(1, "vox-voice-paste: diagnostics are not implemented yet\n")
+        lines = build_diagnostic_lines(secret_service=secrets)
+        print(format_diagnostic_report(lines))
+        return 0
+
+    if args.set_openai_key:
+        value = getpass.getpass("OpenAI API key: ").strip()
+        if not value:
+            parser.exit(1, "vox-voice-paste: OpenAI API key was empty\n")
+        try:
+            secrets.set_secret(OPENAI_API_KEY_SECRET, value)
+        except SecretError as exc:
+            parser.exit(1, f"vox-voice-paste: {exc}\n")
+        print("OpenAI API key stored in the system keyring.")
+        return 0
+
+    if args.delete_openai_key:
+        try:
+            secrets.delete_secret(OPENAI_API_KEY_SECRET)
+        except SecretError as exc:
+            parser.exit(1, f"vox-voice-paste: {exc}\n")
+        print("OpenAI API key deleted from the system keyring.")
+        return 0
+
+    if args.check_openai_key:
+        try:
+            is_present = secrets.get_secret(OPENAI_API_KEY_SECRET) is not None
+        except SecretError as exc:
+            parser.exit(1, f"vox-voice-paste: {exc}\n")
+        print(f"OpenAI API key: {'present' if is_present else 'missing'}")
+        return 0
 
     parser.print_help()
     return 0

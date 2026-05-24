@@ -4,7 +4,12 @@ version = "0.1.0"
 description = "Ubuntu desktop voice dictation helper that copies transcriptions to the clipboard."
 readme = "README.md"
 requires-python = ">=3.12"
-dependencies = []
+dependencies = [
+    "keyring>=25.7",
+    "platformdirs>=4.5",
+    "pydantic>=2.12",
+    "tomli-w>=1.2",
+]
 
 [project.scripts]
 vox-voice-paste = "vox_voice_paste.main:main"
