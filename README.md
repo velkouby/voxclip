@@ -31,39 +31,41 @@ transcripts are not copied.
 ## Install From A Debian Release
 
 The recommended installation path is the prebuilt Debian package attached to a
-GitHub release. For release `v2.0.0`, the expected asset name is:
+GitHub release. For release `v0.2.0`, the expected asset name is:
 
 ```text
-voxclip_2.0.0_amd64.deb
+voxclip_0.2.0_amd64.deb
 ```
+
+Repository-hosted Debian artifacts are also listed in [RELEASES.md](RELEASES.md).
 
 Download it from the GitHub release page, or use the GitHub CLI from a clone of
 the repository:
 
 ```bash
-gh release download v2.0.0 --pattern "voxclip_2.0.0_amd64.deb" --clobber
+gh release download v0.2.0 --pattern "voxclip_0.2.0_amd64.deb" --clobber
 ```
 
 If you are not inside a clone, pass the repository explicitly:
 
 ```bash
-gh release download v2.0.0 \
+gh release download v0.2.0 \
   --repo velkouby/voclip \
-  --pattern "voxclip_2.0.0_amd64.deb" \
+  --pattern "voxclip_0.2.0_amd64.deb" \
   --clobber
 ```
 
 You can also download the asset directly with `curl`:
 
 ```bash
-curl -LO "https://github.com/velkouby/voclip/releases/download/v2.0.0/voxclip_2.0.0_amd64.deb"
+curl -LO "https://github.com/velkouby/voclip/releases/download/v0.2.0/voxclip_0.2.0_amd64.deb"
 ```
 
 Install the package:
 
 ```bash
 sudo apt update
-sudo apt install ./voxclip_2.0.0_amd64.deb
+sudo apt install ./voxclip_0.2.0_amd64.deb
 ```
 
 Then open the settings window:
@@ -207,7 +209,13 @@ Build a local Debian package:
 
 ```bash
 uv run python packaging/build_deb.py
-sudo apt install ./dist/voxclip_2.0.0_amd64.deb
+sudo apt install ./dist/voxclip_0.2.0_amd64.deb
+```
+
+Generate repository release artifacts and refresh `RELEASES.md`:
+
+```bash
+./generate_new_release.sh
 ```
 
 If the required wheels are already available in the local `uv` cache, the Debian

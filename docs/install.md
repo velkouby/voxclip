@@ -4,7 +4,7 @@ Build a local Debian package:
 
 ```bash
 uv run python packaging/build_deb.py
-sudo apt install ./dist/voxclip_2.0.0_amd64.deb
+sudo apt install ./dist/voxclip_0.2.0_amd64.deb
 ```
 
 The first build downloads the locked Python wheels for `/usr/bin/python3` and
