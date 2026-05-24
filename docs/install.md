@@ -22,6 +22,7 @@ Runtime system packages expected on Ubuntu:
 sudo apt install \
   libportaudio2 \
   libnotify-bin \
+  libxcb-cursor0 \
   wl-clipboard xclip xsel
 ```
 

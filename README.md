@@ -44,7 +44,7 @@ Prerequis :
 
 ```bash
 sudo apt update
-sudo apt install libportaudio2 libnotify-bin wl-clipboard xclip xsel
+sudo apt install libportaudio2 libnotify-bin libxcb-cursor0 wl-clipboard xclip xsel
 uv sync --all-extras --dev
 ```
 
@@ -85,7 +85,7 @@ sudo apt install ./dist/vox-voice-paste_0.1.0_amd64.deb
 
 Le paquet embarque les dependances Python dans `/opt/vox-voice-paste/venv`.
 Les dependances apt restantes sont uniquement les bibliotheques systeme
-necessaires au micro, au clipboard et aux notifications.
+necessaires au micro, au clipboard, aux notifications et a Qt (xcb-cursor).
 
 Desinstaller :
 

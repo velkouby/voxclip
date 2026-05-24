@@ -4,7 +4,7 @@ Section: utils
 Priority: optional
 Architecture: @ARCH@
 Maintainer: Vox Voice Paste Maintainers <maintainers@example.invalid>
-Depends: python3 (>= 3.12), libportaudio2, wl-clipboard | xclip | xsel, libnotify-bin
+Depends: python3 (>= 3.12), libportaudio2, wl-clipboard | xclip | xsel, libnotify-bin, libxcb-cursor0
 Description: Ubuntu desktop voice dictation helper
  Vox Voice Paste opens a small recorder, transcribes speech, copies the final
  transcript to the clipboard, and lets the user paste it manually.
