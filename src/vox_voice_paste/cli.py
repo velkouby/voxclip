@@ -100,7 +100,9 @@ def main(
         return run_record_and_copy(mock=True)
 
     if args.settings:
-        parser.exit(1, "vox-voice-paste: settings are not implemented yet\n")
+        from .app import run_settings
+
+        return run_settings()
 
     if args.list_audio_devices:
         try:
@@ -142,5 +144,6 @@ def main(
         print(f"OpenAI API key: {'present' if is_present else 'missing'}")
         return 0
 
-    parser.print_help()
-    return 0
+    from .app import run_main_app
+
+    return run_main_app(secret_service=secrets)

@@ -2,7 +2,7 @@
 
 Source : `specifications/vox_voice_paste_v1_spec_dev_plan.md`  
 Date de creation : 2026-05-23  
-Statut global : En cours - Phase F implementee, validation clipboard Wayland et branchements reels restants  
+Statut global : En cours - Phase G onboarding implementee, validations reelles restantes  
 Environnement cible : Ubuntu desktop, priorite GNOME / Wayland  
 Environnement local observe : `uv 0.9.17`, `.venv` present, Python `3.14.2`, depot Git initialise
 
@@ -118,7 +118,7 @@ Definition of done globale :
 
 - [x] La commande `uv run vox-voice-paste --help` fonctionne.
 - [x] La commande `uv run vox-voice-paste --record-and-copy --mock` ouvre la fenetre et produit une transcription simulee.
-- [ ] La commande configuree dans Ubuntu est documentee : `vox-voice-paste --record-and-copy`.
+- [x] La commande configuree dans Ubuntu est documentee : `vox-voice-paste --record-and-copy`.
 - [ ] Une dictee reelle courte copie le texte final dans le presse-papiers.
 - [ ] L'annulation ne modifie pas le presse-papiers.
 - [ ] Une erreur reseau ou OpenAI ne provoque pas de crash.
@@ -418,24 +418,24 @@ Critere d'acceptation :
 
 Objectif : rendre l'application utilisable sans terminal.
 
-- [ ] `G-001` `P0` Creer `OnboardingWindow`.
-- [ ] `G-002` `P0` Detecter premier lancement non configure.
-- [ ] `G-003` `P0` Ecran bienvenue et mention confidentialite OpenAI.
-- [ ] `G-004` `P0` Ecran cle OpenAI.
-- [ ] `G-005` `P0` Test de connexion OpenAI sans audio.
-- [ ] `G-006` `P0` Ecran choix micro.
+- [x] `G-001` `P0` Creer `OnboardingWindow`.
+- [x] `G-002` `P0` Detecter premier lancement non configure.
+- [x] `G-003` `P0` Ecran bienvenue et mention confidentialite OpenAI.
+- [x] `G-004` `P0` Ecran cle OpenAI.
+- [x] `G-005` `P0` Test de connexion OpenAI sans audio.
+- [x] `G-006` `P0` Ecran choix micro.
 - [ ] `G-007` `P0` Test niveau sonore.
-- [ ] `G-008` `P0` Ecran instruction raccourci Ubuntu.
-- [ ] `G-009` `P1` Copier la commande `vox-voice-paste --record-and-copy`.
+- [x] `G-008` `P0` Ecran instruction raccourci Ubuntu.
+- [x] `G-009` `P1` Copier la commande `vox-voice-paste --record-and-copy`.
 - [ ] `G-010` `P1` Test final de dictee.
-- [ ] `G-011` `P0` Marquer onboarding termine ou ignore explicitement.
+- [x] `G-011` `P0` Marquer onboarding termine ou ignore explicitement.
 
 Critere d'acceptation :
 
-- [ ] Premier lancement sans config ouvre l'assistant.
-- [ ] L'utilisateur peut enregistrer une cle dans le keyring.
-- [ ] L'utilisateur voit et copie la commande du raccourci.
-- [ ] L'utilisateur peut terminer l'assistant sans perdre la config.
+- [x] Premier lancement sans config ouvre l'assistant.
+- [x] L'utilisateur peut enregistrer une cle dans le keyring.
+- [x] L'utilisateur voit et copie la commande du raccourci.
+- [x] L'utilisateur peut terminer l'assistant sans perdre la config.
 
 ### Phase H - Diagnostic et robustesse
 
@@ -516,7 +516,7 @@ Critere d'acceptation release :
 
 - [ ] `CLI-001` `P0` Creer commande `vox-voice-paste`.
 - [ ] `CLI-002` `P0` Ajouter `--record-and-copy`.
-- [ ] `CLI-003` `P1` Ajouter `--settings`.
+- [x] `CLI-003` `P1` Ajouter `--settings`.
 - [x] `CLI-004` `P0` Ajouter `--diagnose`.
 - [ ] `CLI-005` `P0` Ajouter `--mock`.
 - [x] `CLI-006` `P1` Ajouter `--list-audio-devices`.
@@ -573,14 +573,14 @@ Critere d'acceptation release :
 
 ### Epic Onboarding
 
-- [ ] `ONB-001` `P0` Ecran bienvenue.
-- [ ] `ONB-002` `P0` Ecran cle OpenAI.
-- [ ] `ONB-003` `P0` Test cle OpenAI.
-- [ ] `ONB-004` `P0` Ecran micro.
+- [x] `ONB-001` `P0` Ecran bienvenue.
+- [x] `ONB-002` `P0` Ecran cle OpenAI.
+- [x] `ONB-003` `P0` Test cle OpenAI.
+- [x] `ONB-004` `P0` Ecran micro.
 - [ ] `ONB-005` `P0` Test niveau sonore.
-- [ ] `ONB-006` `P0` Ecran raccourci Ubuntu.
+- [x] `ONB-006` `P0` Ecran raccourci Ubuntu.
 - [ ] `ONB-007` `P1` Test final.
-- [ ] `ONB-008` `P0` Flag onboarding termine.
+- [x] `ONB-008` `P0` Flag onboarding termine.
 
 ### Epic Packaging
 
@@ -650,7 +650,7 @@ Critere d'acceptation release :
 ## 12. Criteres d'acceptation fonctionnels suivis
 
 - [ ] `AC-001` Premier lancement non configure ouvre l'assistant.
-- [ ] `AC-002` Cle OpenAI validee sans affichage en clair.
+- [x] `AC-002` Cle OpenAI validee sans affichage en clair.
 - [ ] `AC-003` Choix micro et niveau sonore visibles.
 - [ ] `AC-004` Commande raccourci affichee et copiable.
 - [ ] `AC-005` Dictee mock progressive.

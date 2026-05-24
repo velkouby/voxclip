@@ -14,6 +14,7 @@ Install and run through `uv`:
 
 ```bash
 uv sync --all-extras --dev
+uv run vox-voice-paste
 uv run vox-voice-paste --help
 uv run vox-voice-paste --record-and-copy --mock
 uv run vox-voice-paste --diagnose
@@ -32,6 +33,7 @@ The distribution package is `voice2paste`, the Python module is
 Configuration is stored under the user config directory. The OpenAI API key is
 stored separately in the system keyring and is never written to `config.toml` or
 shown in diagnostics.
+On first launch, `uv run vox-voice-paste` opens the onboarding window.
 
 Audio capture uses PortAudio through `sounddevice`. On Ubuntu, install the system
 runtime before listing or capturing real microphones:

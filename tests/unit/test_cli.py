@@ -18,12 +18,12 @@ def test_build_parser_contains_expected_commands() -> None:
     assert "--check-openai-key" in help_text
 
 
-def test_main_without_args_prints_help(capsys) -> None:
-    exit_code = main([])
+def test_main_without_args_runs_main_app(monkeypatch) -> None:
+    import vox_voice_paste.app
 
-    captured = capsys.readouterr()
-    assert exit_code == 0
-    assert "Dictate text" in captured.out
+    monkeypatch.setattr(vox_voice_paste.app, "run_main_app", lambda **kwargs: 17)
+
+    assert main([], secret_service=InMemorySecretService()) == 17
 
 
 def test_module_help_entrypoint() -> None:
@@ -76,3 +76,11 @@ def test_record_and_copy_mock_runs_app(monkeypatch) -> None:
     monkeypatch.setattr(vox_voice_paste.app, "run_record_and_copy", lambda *, mock: 23)
 
     assert main(["--record-and-copy", "--mock"]) == 23
+
+
+def test_settings_runs_settings_window(monkeypatch) -> None:
+    import vox_voice_paste.app
+
+    monkeypatch.setattr(vox_voice_paste.app, "run_settings", lambda: 19)
+
+    assert main(["--settings"]) == 19
