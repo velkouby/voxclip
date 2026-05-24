@@ -2,7 +2,15 @@ from __future__ import annotations
 
 import pytest
 
-from vox_voice_paste.config import AppConfig, ConfigError, load_config, save_config
+from vox_voice_paste.config import (
+    DEFAULT_TRANSCRIPTION_MODEL,
+    NON_REALTIME_TRANSCRIPTION_MODELS,
+    AppConfig,
+    ConfigError,
+    load_config,
+    normalize_transcription_model,
+    save_config,
+)
 
 
 def test_missing_config_returns_default(tmp_path) -> None:
@@ -25,6 +33,18 @@ def test_save_and_load_config_without_secret_content(tmp_path) -> None:
     assert load_config(config_path) == config
     assert "openai" not in config_path.read_text(encoding="utf-8").lower()
     assert not list(tmp_path.glob("*.tmp"))
+
+
+@pytest.mark.parametrize("model", sorted(NON_REALTIME_TRANSCRIPTION_MODELS))
+def test_non_realtime_transcription_models_normalize_to_realtime_model(model: str) -> None:
+    config = AppConfig(transcription_model=model)
+
+    assert config.transcription_model == DEFAULT_TRANSCRIPTION_MODEL
+    assert normalize_transcription_model(model) == DEFAULT_TRANSCRIPTION_MODEL
+
+
+def test_blank_transcription_model_normalizes_to_default() -> None:
+    assert normalize_transcription_model("   ") == DEFAULT_TRANSCRIPTION_MODEL
 
 
 def test_invalid_config_raises_config_error(tmp_path) -> None:

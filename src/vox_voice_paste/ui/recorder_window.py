@@ -14,6 +14,7 @@ from PySide6.QtWidgets import (
     QDialog,
     QHBoxLayout,
     QLabel,
+    QMessageBox,
     QPushButton,
     QVBoxLayout,
     QWidget,
@@ -372,10 +373,16 @@ class RecorderWindow(QDialog):
         self.status_label.setText(message)
         if self._close_on_success:
             # Headless/record-and-copy mode: surface the error via the OS
-            # notifier and close the session so the next Ctrl+Alt+N can run.
+            # notifier and a blocking popup, then close the session so the
+            # next Ctrl+Alt+N can run after the user acknowledges the failure.
+            self._show_error_popup(message)
             self._close_session(notification=("VoxClip", message))
 
     def _copy_final_text(self, text: str) -> None:
+        if not text.strip():
+            self._handle_error("Transcription returned empty text.")
+            return
+
         self.set_state(RecorderState.COPYING)
         try:
             self._clipboard.copy_text(text)
@@ -423,12 +430,7 @@ class RecorderWindow(QDialog):
             POST_STOP_DEADLINE_MS,
             self._state,
         )
-        self._close_session(
-            notification=(
-                "VoxClip",
-                "Transcription incomplete: no final text received.",
-            )
-        )
+        self._handle_error("Transcription incomplete: no final text received.")
 
     def _close_session(
         self,
@@ -465,6 +467,12 @@ class RecorderWindow(QDialog):
                 FORCE_QUIT_AFTER_SUCCESS_MS,
                 self._force_quit_application,
             )
+
+    def _show_error_popup(self, message: str) -> None:
+        try:
+            QMessageBox.critical(self, "VoxClip", message)
+        except Exception:
+            _logger.exception("Failed to show transcription error popup.")
 
     @Slot()
     def _force_quit_application(self) -> None:

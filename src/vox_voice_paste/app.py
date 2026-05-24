@@ -5,7 +5,7 @@ from pathlib import Path
 
 from PySide6.QtWidgets import QApplication, QDialog
 
-from vox_voice_paste.config import load_config
+from vox_voice_paste.config import load_config, normalize_transcription_model
 from vox_voice_paste.desktop import (
     ClipboardService,
     SessionAlreadyRunningError,
@@ -96,7 +96,7 @@ def _openai_transcription_service(config, *, api_key: str) -> OpenAIRealtimeTran
     return OpenAIRealtimeTranscriptionService(
         TranscriptionConfig(
             api_key=api_key,
-            model=config.transcription_model,
+            model=normalize_transcription_model(config.transcription_model),
             language=config.transcription_language,
             delay=config.transcription_delay,
         )

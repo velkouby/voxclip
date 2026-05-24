@@ -8,14 +8,25 @@ from typing import Any
 
 import tomli_w
 from platformdirs import user_config_path
-from pydantic import BaseModel, ConfigDict, Field, ValidationError
+from pydantic import BaseModel, ConfigDict, Field, ValidationError, field_validator
 
 APP_ID = "voxclip"
 LEGACY_APP_IDS = ("vox-voice-paste",)
 CONFIG_FILENAME = "config.toml"
-DEFAULT_TRANSCRIPTION_MODEL = "gpt-4o-mini-transcribe"
-EXPERT_TRANSCRIPTION_MODEL = "gpt-4o-transcribe"
+REALTIME_TRANSCRIPTION_MODEL = "gpt-realtime-whisper"
+DEFAULT_TRANSCRIPTION_MODEL = REALTIME_TRANSCRIPTION_MODEL
+DEFAULT_TRANSCRIPTION_DELAY = "low"
+EXPERT_TRANSCRIPTION_DELAY = "high"
 DEFAULT_UBUNTU_SHORTCUT = "Ctrl+Alt+N"
+
+NON_REALTIME_TRANSCRIPTION_MODELS = {
+    "gpt-4o-mini-transcribe",
+    "gpt-4o-mini-transcribe-2025-12-15",
+    "gpt-4o-transcribe",
+    "gpt-4o-transcribe-diarize",
+    "gpt-4o-transcribe-latest",
+    "whisper-1",
+}
 
 
 class ConfigError(RuntimeError):
@@ -30,8 +41,27 @@ class AppConfig(BaseModel):
     default_input_device_id: str | None = None
     transcription_model: str = DEFAULT_TRANSCRIPTION_MODEL
     transcription_language: str | None = None
-    transcription_delay: str = Field(default="low", pattern="^(minimal|low|medium|high|xhigh)$")
+    transcription_delay: str = Field(
+        default=DEFAULT_TRANSCRIPTION_DELAY,
+        pattern="^(minimal|low|medium|high|xhigh)$",
+    )
     ubuntu_shortcut: str = DEFAULT_UBUNTU_SHORTCUT
+
+    @field_validator("transcription_model")
+    @classmethod
+    def normalize_realtime_transcription_model(cls, value: str) -> str:
+        return normalize_transcription_model(value)
+
+
+def normalize_transcription_model(model: str | None) -> str:
+    if not model:
+        return DEFAULT_TRANSCRIPTION_MODEL
+    normalized = model.strip()
+    if not normalized:
+        return DEFAULT_TRANSCRIPTION_MODEL
+    if normalized in NON_REALTIME_TRANSCRIPTION_MODELS:
+        return REALTIME_TRANSCRIPTION_MODEL
+    return normalized
 
 
 def default_config_path() -> Path:

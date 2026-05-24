@@ -98,6 +98,11 @@ def test_recorder_window_force_closes_when_final_never_arrives(
     monkeypatch.setattr(
         "vox_voice_paste.ui.recorder_window.POST_STOP_DEADLINE_MS", 100
     )
+    popups: list[tuple[str, str]] = []
+    monkeypatch.setattr(
+        "vox_voice_paste.ui.recorder_window.QMessageBox.critical",
+        lambda parent, title, message: popups.append((title, message)),
+    )
     notifications = InMemoryNotificationService()
     clipboard = InMemoryClipboardService()
     window = RecorderWindow(
@@ -121,16 +126,25 @@ def test_recorder_window_force_closes_when_final_never_arrives(
     qtbot.waitUntil(lambda: not runner.is_running(), timeout=2000)
     assert not window.isVisible()
     assert clipboard.text is None
+    assert popups == [("VoxClip", "Transcription incomplete: no final text received.")]
     assert any(
         "incomplete" in n.body.lower() or "final" in n.body.lower()
         for n in notifications.notifications
     )
 
 
-def test_recorder_window_force_closes_on_error_in_close_on_success_mode(qtbot) -> None:
+def test_recorder_window_force_closes_on_error_in_close_on_success_mode(
+    qtbot,
+    monkeypatch,
+) -> None:
     """A service error (e.g. network failure) must close the window when
-    running in record-and-copy mode, surfacing the failure via a system
-    notification instead of pinning the dialog open."""
+    running in record-and-copy mode, surfacing the failure via a popup and
+    system notification instead of failing silently."""
+    popups: list[tuple[str, str]] = []
+    monkeypatch.setattr(
+        "vox_voice_paste.ui.recorder_window.QMessageBox.critical",
+        lambda parent, title, message: popups.append((title, message)),
+    )
     notifications = InMemoryNotificationService()
     clipboard = InMemoryClipboardService()
     window = RecorderWindow(
@@ -149,6 +163,7 @@ def test_recorder_window_force_closes_on_error_in_close_on_success_mode(qtbot) -
     assert window.state is RecorderState.ERROR
     assert not window.isVisible()
     assert clipboard.text is None
+    assert popups == [("VoxClip", "Realtime transcription failed: connection refused")]
     assert any(
         "connection" in n.body.lower() or "failed" in n.body.lower()
         for n in notifications.notifications
@@ -255,6 +270,33 @@ def test_recorder_window_refuses_to_copy_empty_transcript(qtbot) -> None:
 
     assert clipboard.text is None
     assert "empty text" in window.status_label.text()
+
+
+def test_recorder_window_popup_for_empty_transcript_in_record_and_copy_mode(
+    qtbot,
+    monkeypatch,
+) -> None:
+    popups: list[tuple[str, str]] = []
+    monkeypatch.setattr(
+        "vox_voice_paste.ui.recorder_window.QMessageBox.critical",
+        lambda parent, title, message: popups.append((title, message)),
+    )
+    clipboard = InMemoryClipboardService()
+    window = RecorderWindow(
+        transcription_service=MockTranscriptionService("", delay_seconds=0),
+        clipboard_service=clipboard,
+        notification_service=InMemoryNotificationService(),
+        auto_start=True,
+        close_on_success=True,
+    )
+    qtbot.addWidget(window)
+
+    with qtbot.waitSignal(window.finished, timeout=2000):
+        window.show()
+
+    assert window.state is RecorderState.ERROR
+    assert clipboard.text is None
+    assert popups == [("VoxClip", "Transcription returned empty text.")]
 
 
 def test_recorder_window_surfaces_clipboard_error_in_status(qtbot) -> None:

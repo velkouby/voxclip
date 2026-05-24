@@ -4,8 +4,8 @@ from pathlib import Path
 
 from PySide6.QtCore import Slot
 from PySide6.QtWidgets import (
-    QDialog,
     QCheckBox,
+    QDialog,
     QLabel,
     QLineEdit,
     QPushButton,
@@ -14,8 +14,9 @@ from PySide6.QtWidgets import (
 )
 
 from vox_voice_paste.config import (
+    DEFAULT_TRANSCRIPTION_DELAY,
     DEFAULT_TRANSCRIPTION_MODEL,
-    EXPERT_TRANSCRIPTION_MODEL,
+    EXPERT_TRANSCRIPTION_DELAY,
     default_config_path,
     load_config,
     save_config,
@@ -74,13 +75,13 @@ class SettingsWindow(QDialog):
         self.install_shortcut_button = QPushButton("Install GNOME shortcut")
         self.install_shortcut_button.clicked.connect(self.apply_ubuntu_shortcut)
         self.shortcut_status = QLabel()
-        self.transcription_expert_checkbox = QCheckBox("Transcription mode expert")
+        self.transcription_expert_checkbox = QCheckBox("Prioritize transcription accuracy")
         self.transcription_expert_checkbox.setChecked(
-            self._config.transcription_model == EXPERT_TRANSCRIPTION_MODEL
+            self._config.transcription_delay == EXPERT_TRANSCRIPTION_DELAY
         )
         self.transcription_expert_checkbox.toggled.connect(self._set_transcription_expert_mode)
         self.transcription_expert_warning = QLabel(
-            "Expert mode can cost up to 2x more than the default transcription mode."
+            "Higher accuracy can take longer before text appears."
         )
         self.transcription_expert_warning.setWordWrap(True)
         self.transcription_expert_warning.setVisible(
@@ -147,8 +148,9 @@ class SettingsWindow(QDialog):
 
     @Slot()
     def _set_transcription_expert_mode(self, enabled: bool) -> None:
-        self._config.transcription_model = (
-            EXPERT_TRANSCRIPTION_MODEL if enabled else DEFAULT_TRANSCRIPTION_MODEL
+        self._config.transcription_model = DEFAULT_TRANSCRIPTION_MODEL
+        self._config.transcription_delay = (
+            EXPERT_TRANSCRIPTION_DELAY if enabled else DEFAULT_TRANSCRIPTION_DELAY
         )
         self.transcription_expert_warning.setVisible(enabled)
         save_config(self._config, self._config_path)
