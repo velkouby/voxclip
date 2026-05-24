@@ -5,6 +5,7 @@ from pathlib import Path
 from PySide6.QtCore import Slot
 from PySide6.QtWidgets import (
     QDialog,
+    QCheckBox,
     QLabel,
     QLineEdit,
     QPushButton,
@@ -12,7 +13,13 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
-from vox_voice_paste.config import default_config_path, load_config, save_config
+from vox_voice_paste.config import (
+    DEFAULT_TRANSCRIPTION_MODEL,
+    EXPERT_TRANSCRIPTION_MODEL,
+    default_config_path,
+    load_config,
+    save_config,
+)
 from vox_voice_paste.desktop import (
     ClipboardError,
     ClipboardService,
@@ -67,6 +74,18 @@ class SettingsWindow(QDialog):
         self.install_shortcut_button = QPushButton("Install GNOME shortcut")
         self.install_shortcut_button.clicked.connect(self.apply_ubuntu_shortcut)
         self.shortcut_status = QLabel()
+        self.transcription_expert_checkbox = QCheckBox("Transcription mode expert")
+        self.transcription_expert_checkbox.setChecked(
+            self._config.transcription_model == EXPERT_TRANSCRIPTION_MODEL
+        )
+        self.transcription_expert_checkbox.toggled.connect(self._set_transcription_expert_mode)
+        self.transcription_expert_warning = QLabel(
+            "Expert mode can cost up to 2x more than the default transcription mode."
+        )
+        self.transcription_expert_warning.setWordWrap(True)
+        self.transcription_expert_warning.setVisible(
+            self.transcription_expert_checkbox.isChecked()
+        )
 
         close_button = QPushButton("Close")
         close_button.clicked.connect(self.accept)
@@ -85,6 +104,8 @@ class SettingsWindow(QDialog):
         layout.addWidget(self.shortcut_status)
         layout.addWidget(self.configure_key_button)
         layout.addWidget(self.key_status)
+        layout.addWidget(self.transcription_expert_checkbox)
+        layout.addWidget(self.transcription_expert_warning)
         layout.addWidget(close_button)
         self.setLayout(layout)
 
@@ -123,3 +144,11 @@ class SettingsWindow(QDialog):
         self._config.ubuntu_shortcut = shortcut
         save_config(self._config, self._config_path)
         self.shortcut_status.setText(f"GNOME shortcut configured: {shortcut}")
+
+    @Slot()
+    def _set_transcription_expert_mode(self, enabled: bool) -> None:
+        self._config.transcription_model = (
+            EXPERT_TRANSCRIPTION_MODEL if enabled else DEFAULT_TRANSCRIPTION_MODEL
+        )
+        self.transcription_expert_warning.setVisible(enabled)
+        save_config(self._config, self._config_path)

@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from PySide6.QtWidgets import QDialog
 
+from vox_voice_paste.config import DEFAULT_TRANSCRIPTION_MODEL, EXPERT_TRANSCRIPTION_MODEL
 from vox_voice_paste.config import load_config
 from vox_voice_paste.desktop import InMemoryClipboardService
 from vox_voice_paste.security import InMemorySecretService, StaticOpenAIKeyValidator
@@ -89,3 +90,25 @@ def test_settings_window_installs_shortcut_and_persists_choice(
     assert recorded["shortcut"] == "Ctrl+Alt+K"
     assert recorded["command"] == SHORTCUT_COMMAND
     assert load_config(tmp_path / "config.toml").ubuntu_shortcut == "Ctrl+Alt+K"
+
+
+def test_settings_window_toggles_transcription_model(qtbot, tmp_path) -> None:
+    config_path = tmp_path / "config.toml"
+    window = SettingsWindow(
+        config_path=config_path,
+        secret_service=InMemorySecretService(),
+        key_validator=StaticOpenAIKeyValidator(),
+    )
+    qtbot.addWidget(window)
+
+    assert window.transcription_expert_checkbox.isChecked() is False
+    assert load_config(config_path).transcription_model == DEFAULT_TRANSCRIPTION_MODEL
+
+    window.transcription_expert_checkbox.setChecked(True)
+
+    assert window.transcription_expert_warning.isVisible()
+    assert "2x" in window.transcription_expert_warning.text()
+    assert load_config(config_path).transcription_model == EXPERT_TRANSCRIPTION_MODEL
+
+    window.transcription_expert_checkbox.setChecked(False)
+    assert load_config(config_path).transcription_model == DEFAULT_TRANSCRIPTION_MODEL

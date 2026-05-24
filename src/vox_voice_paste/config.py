@@ -13,7 +13,8 @@ from pydantic import BaseModel, ConfigDict, Field, ValidationError
 APP_ID = "voxclip"
 LEGACY_APP_IDS = ("vox-voice-paste",)
 CONFIG_FILENAME = "config.toml"
-DEFAULT_TRANSCRIPTION_MODEL = "gpt-realtime-whisper"
+DEFAULT_TRANSCRIPTION_MODEL = "gpt-4o-mini-transcribe"
+EXPERT_TRANSCRIPTION_MODEL = "gpt-4o-transcribe"
 DEFAULT_UBUNTU_SHORTCUT = "Ctrl+Alt+N"
 
 
