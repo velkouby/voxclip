@@ -4,7 +4,7 @@ Build a local Debian package:
 
 ```bash
 uv run python packaging/build_deb.py
-sudo apt install ./dist/vox-voice-paste_0.1.0_all.deb
+sudo apt install ./dist/vox-voice-paste_0.1.0_amd64.deb
 ```
 
 Runtime system packages expected on Ubuntu:
