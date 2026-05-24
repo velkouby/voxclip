@@ -68,6 +68,15 @@ Construire le paquet :
 uv run python packaging/build_deb.py
 ```
 
+Le premier build telecharge les wheels Python verrouillees par `uv.lock` pour
+`/usr/bin/python3`, puis les embarque dans le paquet. Si PyPI est
+temporairement inaccessible mais que le cache `uv` contient deja ces
+dependances pour le Python systeme :
+
+```bash
+uv run python packaging/build_deb.py --offline
+```
+
 Installer le paquet :
 
 ```bash

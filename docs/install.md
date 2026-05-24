@@ -7,6 +7,15 @@ uv run python packaging/build_deb.py
 sudo apt install ./dist/vox-voice-paste_0.1.0_amd64.deb
 ```
 
+The first build downloads the locked Python wheels for `/usr/bin/python3` and
+embeds them under `/opt/vox-voice-paste/venv`. If the network is temporarily
+unavailable but those system-Python wheels are already present in the local
+`uv` cache, build from cache only:
+
+```bash
+uv run python packaging/build_deb.py --offline
+```
+
 Runtime system packages expected on Ubuntu:
 
 ```bash
