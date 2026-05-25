@@ -7,6 +7,11 @@ transcript to the clipboard, and lets you paste it manually with `Ctrl+V`.
 VoxClip does not simulate keystrokes or paste automatically. This keeps the app
 reliable on GNOME and Wayland, where automatic paste injection is fragile.
 
+## Screenshots
+
+![Recording window](docs/screenshots/recording_screen.png)
+![Settings window](docs/screenshots/setting_screen.png)
+
 ## How It Works
 
 1. Put the cursor in the text field where you want to dictate.
@@ -176,6 +181,53 @@ List detected audio input devices:
 ```bash
 voxclip --list-audio-devices
 ```
+
+## Parameters
+
+VoxClip uses two layers of configuration:
+
+- CLI flags for launching and key actions
+- `~/.config/voxclip/config.toml` for persistent behavior
+
+### CLI flags
+
+- `--record-and-copy` (open the recorder and start dictation)
+- `--settings` (open settings window)
+- `--mock` (mock audio/transcription for development)
+- `--set-openai-key`, `--delete-openai-key`, `--check-openai-key`
+- `--set-ubuntu-shortcut [KEY_COMBO]` (default: `Ctrl+Alt+N`)
+- `--remove-ubuntu-shortcut`
+- `--ensure-ubuntu-shortcut` (reinstall the managed shortcut)
+- `--list-audio-devices`
+- `--diagnose`
+
+### Advanced config file parameters
+
+You can edit `~/.config/voxclip/config.toml` manually if needed:
+
+```toml
+transcription_model = "gpt-realtime-whisper"
+transcription_language = "fr"
+transcription_delay = "low"
+ubuntu_shortcut = "Ctrl+Alt+N"
+```
+
+- `transcription_model`: OpenAI Realtime model used for dictation.
+- `transcription_language`: optional source language override (`en`, `fr`, etc.).
+- `transcription_delay`: delay/latency/accuracy trade-off.
+  Valid values are `minimal`, `low`, `medium`, `high`, `xhigh`.
+- `ubuntu_shortcut`: GNOME shortcut that launches dictation.
+
+## OpenAI Cost
+
+VoxClip streams microphone audio to OpenAI Realtime transcription.
+The default model is `gpt-realtime-whisper`, priced at **$0.017 per minute**
+on the official OpenAI pricing docs. A quick estimate is:
+
+- 10 minutes: `$0.17`
+- 1 hour: `$1.02`
+
+The final bill depends on your usage and OpenAI's current rate card.
 
 ## Development
 
