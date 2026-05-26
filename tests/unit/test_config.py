@@ -5,6 +5,8 @@ import pytest
 from vox_voice_paste.config import (
     DEFAULT_TRANSCRIPTION_MODEL,
     NON_REALTIME_TRANSCRIPTION_MODELS,
+    OPENAI_TRANSCRIPTION_PROVIDER,
+    SONIOX_TRANSCRIPTION_PROVIDER,
     AppConfig,
     ConfigError,
     load_config,
@@ -31,8 +33,25 @@ def test_save_and_load_config_without_secret_content(tmp_path) -> None:
     save_config(config, config_path)
 
     assert load_config(config_path) == config
-    assert "openai" not in config_path.read_text(encoding="utf-8").lower()
+    saved = config_path.read_text(encoding="utf-8").lower()
+    assert "sk-" not in saved
+    assert "api_key" not in saved
     assert not list(tmp_path.glob("*.tmp"))
+
+
+def test_transcription_provider_defaults_to_openai(tmp_path) -> None:
+    config = load_config(tmp_path / "missing.toml")
+
+    assert config.transcription_provider == OPENAI_TRANSCRIPTION_PROVIDER
+
+
+def test_save_and_load_soniox_transcription_provider(tmp_path) -> None:
+    config_path = tmp_path / "config.toml"
+    config = AppConfig(transcription_provider=SONIOX_TRANSCRIPTION_PROVIDER)
+
+    save_config(config, config_path)
+
+    assert load_config(config_path).transcription_provider == SONIOX_TRANSCRIPTION_PROVIDER
 
 
 @pytest.mark.parametrize("model", sorted(NON_REALTIME_TRANSCRIPTION_MODELS))

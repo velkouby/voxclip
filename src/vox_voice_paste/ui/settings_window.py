@@ -8,6 +8,7 @@ from pathlib import Path
 from PySide6.QtCore import Slot
 from PySide6.QtWidgets import (
     QCheckBox,
+    QComboBox,
     QDialog,
     QLabel,
     QLineEdit,
@@ -20,6 +21,8 @@ from vox_voice_paste.config import (
     DEFAULT_TRANSCRIPTION_DELAY,
     DEFAULT_TRANSCRIPTION_MODEL,
     EXPERT_TRANSCRIPTION_DELAY,
+    OPENAI_TRANSCRIPTION_PROVIDER,
+    SONIOX_TRANSCRIPTION_PROVIDER,
     default_config_path,
     load_config,
     save_config,
@@ -32,10 +35,14 @@ from vox_voice_paste.desktop import (
     set_ubuntu_shortcut,
 )
 from vox_voice_paste.security import (
+    OPENAI_API_KEY_SECRET,
+    SONIOX_API_KEY_SECRET,
+    APIKeyValidator,
     KeyringSecretService,
     OpenAIHTTPKeyValidator,
     OpenAIKeyValidator,
     SecretService,
+    SonioxHTTPKeyValidator,
 )
 
 from .api_key_dialog import OpenAIKeyDialog
@@ -65,9 +72,17 @@ class SettingsWindow(QDialog):
         self.setWindowTitle("VoxClip - Settings")
         self.setMinimumWidth(520)
 
-        self.key_status = QLabel("OpenAI key is stored in the system keyring.")
-        self.configure_key_button = QPushButton("Configure OpenAI key")
-        self.configure_key_button.clicked.connect(self.configure_openai_key)
+        self.provider_combo = QComboBox()
+        self.provider_combo.addItem("OpenAI", OPENAI_TRANSCRIPTION_PROVIDER)
+        self.provider_combo.addItem("Soniox", SONIOX_TRANSCRIPTION_PROVIDER)
+        self.provider_combo.setCurrentIndex(
+            self.provider_combo.findData(self._config.transcription_provider)
+        )
+        self.provider_combo.currentIndexChanged.connect(self._set_transcription_provider)
+
+        self.key_status = QLabel()
+        self.configure_key_button = QPushButton()
+        self.configure_key_button.clicked.connect(self.configure_api_key)
 
         self.shortcut_command = QLineEdit(SHORTCUT_COMMAND)
         self.shortcut_command.setReadOnly(True)
@@ -90,6 +105,7 @@ class SettingsWindow(QDialog):
         self.transcription_expert_warning.setVisible(
             self.transcription_expert_checkbox.isChecked()
         )
+        self._sync_provider_ui()
 
         close_button = QPushButton("Close")
         close_button.clicked.connect(self.accept)
@@ -100,6 +116,8 @@ class SettingsWindow(QDialog):
         layout.addWidget(QLabel(f"Shortcut command: {SHORTCUT_COMMAND}"))
         layout.addWidget(QLabel(f"Recommended shortcut: {RECOMMENDED_SHORTCUT}"))
         layout.addWidget(QLabel("If Ctrl+Alt+N is already used, choose another shortcut."))
+        layout.addWidget(QLabel("Transcription backend:"))
+        layout.addWidget(self.provider_combo)
         layout.addWidget(QLabel("Active GNOME shortcut:"))
         layout.addWidget(self.shortcut_input)
         layout.addWidget(self.install_shortcut_button)
@@ -114,16 +132,23 @@ class SettingsWindow(QDialog):
         self.setLayout(layout)
 
     @Slot()
-    def configure_openai_key(self) -> None:
+    def configure_api_key(self) -> None:
+        provider = self._config.transcription_provider
         dialog = OpenAIKeyDialog(
             secret_service=self._secrets,
-            key_validator=self._key_validator,
+            key_validator=self._active_key_validator(provider),
+            secret_name=_api_key_secret_name(provider),
+            service_name=_provider_label(provider),
             parent=self,
         )
         if dialog.exec() == QDialog.DialogCode.Accepted:
-            self.key_status.setText("OpenAI key saved.")
+            self.key_status.setText(f"{_provider_label(provider)} key saved.")
         else:
-            self.key_status.setText("OpenAI key unchanged.")
+            self.key_status.setText(f"{_provider_label(provider)} key unchanged.")
+
+    @Slot()
+    def configure_openai_key(self) -> None:
+        self.configure_api_key()
 
     @Slot()
     def copy_shortcut_command(self) -> None:
@@ -151,9 +176,51 @@ class SettingsWindow(QDialog):
 
     @Slot()
     def _set_transcription_expert_mode(self, enabled: bool) -> None:
+        if self._config.transcription_provider == SONIOX_TRANSCRIPTION_PROVIDER:
+            return
         self._config.transcription_model = DEFAULT_TRANSCRIPTION_MODEL
         self._config.transcription_delay = (
             EXPERT_TRANSCRIPTION_DELAY if enabled else DEFAULT_TRANSCRIPTION_DELAY
         )
         self.transcription_expert_warning.setVisible(enabled)
         save_config(self._config, self._config_path)
+
+    @Slot(int)
+    def _set_transcription_provider(self, index: int = -1) -> None:
+        del index
+        provider = self.provider_combo.currentData()
+        if provider not in {OPENAI_TRANSCRIPTION_PROVIDER, SONIOX_TRANSCRIPTION_PROVIDER}:
+            return
+        self._config.transcription_provider = provider
+        save_config(self._config, self._config_path)
+        self._sync_provider_ui()
+
+    def _sync_provider_ui(self) -> None:
+        provider = self._config.transcription_provider
+        label = _provider_label(provider)
+        self.configure_key_button.setText(f"Configure {label} key")
+        self.key_status.setText(f"{label} key is stored in the system keyring.")
+        openai_selected = provider == OPENAI_TRANSCRIPTION_PROVIDER
+        self.transcription_expert_checkbox.setVisible(openai_selected)
+        self.transcription_expert_warning.setVisible(
+            openai_selected and self.transcription_expert_checkbox.isChecked()
+        )
+
+    def _active_key_validator(self, provider: str) -> APIKeyValidator:
+        if provider == SONIOX_TRANSCRIPTION_PROVIDER and isinstance(
+            self._key_validator, OpenAIHTTPKeyValidator
+        ):
+            return SonioxHTTPKeyValidator()
+        return self._key_validator
+
+
+def _api_key_secret_name(provider: str) -> str:
+    if provider == SONIOX_TRANSCRIPTION_PROVIDER:
+        return SONIOX_API_KEY_SECRET
+    return OPENAI_API_KEY_SECRET
+
+
+def _provider_label(provider: str) -> str:
+    if provider == SONIOX_TRANSCRIPTION_PROVIDER:
+        return "Soniox"
+    return "OpenAI"

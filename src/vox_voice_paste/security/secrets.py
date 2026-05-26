@@ -11,6 +11,7 @@ import keyring
 KEYRING_SERVICE_NAME = "voxclip"
 LEGACY_KEYRING_SERVICE_NAMES = ("vox-voice-paste",)
 OPENAI_API_KEY_SECRET = "openai-api-key"
+SONIOX_API_KEY_SECRET = "soniox-api-key"
 
 
 class SecretError(RuntimeError):

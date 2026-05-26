@@ -8,8 +8,8 @@ from PySide6.QtWidgets import QDialog, QLabel, QLineEdit, QPushButton, QVBoxLayo
 
 from vox_voice_paste.security import (
     OPENAI_API_KEY_SECRET,
+    APIKeyValidator,
     OpenAIHTTPKeyValidator,
-    OpenAIKeyValidator,
     SecretError,
     SecretService,
 )
@@ -20,19 +20,23 @@ class OpenAIKeyDialog(QDialog):
         self,
         *,
         secret_service: SecretService,
-        key_validator: OpenAIKeyValidator | None = None,
+        key_validator: APIKeyValidator | None = None,
+        secret_name: str = OPENAI_API_KEY_SECRET,
+        service_name: str = "OpenAI",
         parent: QWidget | None = None,
     ) -> None:
         super().__init__(parent)
         self._secrets = secret_service
+        self._secret_name = secret_name
+        self._service_name = service_name
         self._key_validator = key_validator or OpenAIHTTPKeyValidator()
 
-        self.setWindowTitle("OpenAI Key")
+        self.setWindowTitle(f"{service_name} Key")
         self.setMinimumWidth(460)
 
         self.key_input = QLineEdit()
         self.key_input.setEchoMode(QLineEdit.EchoMode.Password)
-        self.key_input.setPlaceholderText("OpenAI API key")
+        self.key_input.setPlaceholderText(f"{service_name} API key")
         self.status_label = QLabel("The key will be stored in the system keyring.")
 
         self.save_button = QPushButton("Save")
@@ -41,7 +45,7 @@ class OpenAIKeyDialog(QDialog):
         self.cancel_button.clicked.connect(self.reject)
 
         layout = QVBoxLayout()
-        layout.addWidget(QLabel("Enter your OpenAI API key."))
+        layout.addWidget(QLabel(f"Enter your {service_name} API key."))
         layout.addWidget(self.key_input)
         layout.addWidget(self.status_label)
         layout.addWidget(self.save_button)
@@ -61,7 +65,7 @@ class OpenAIKeyDialog(QDialog):
             return
 
         try:
-            self._secrets.set_secret(OPENAI_API_KEY_SECRET, value)
+            self._secrets.set_secret(self._secret_name, value)
         except SecretError as exc:
             self.status_label.setText(str(exc))
             return
