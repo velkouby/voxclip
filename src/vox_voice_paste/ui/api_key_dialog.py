@@ -1,4 +1,7 @@
-from __future__ import annotations
+# SPDX-FileCopyrightText: 2026 VoxClip contributors
+# SPDX-License-Identifier: MIT
+# Author: Vincent Elkouby
+# Contact: https://github.com/velkouby
 
 from PySide6.QtCore import Slot
 from PySide6.QtWidgets import QDialog, QLabel, QLineEdit, QPushButton, QVBoxLayout, QWidget

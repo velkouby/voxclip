@@ -12,6 +12,12 @@ reliable on GNOME and Wayland, where automatic paste injection is fragile.
 ![Recording window](docs/screenshots/recording_screen.png)
 ![Settings window](docs/screenshots/setting_screen.png)
 
+## Author and Contact
+
+- Author: Vincent Elkouby
+- GitHub: https://github.com/velkouby
+- If you use or redistribute this project, cite: **Vincent Elkouby (GitHub: velkouby)**
+
 ## How It Works
 
 1. Put the cursor in the text field where you want to dictate.

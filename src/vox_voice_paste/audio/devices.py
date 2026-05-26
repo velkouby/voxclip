@@ -1,4 +1,7 @@
-from __future__ import annotations
+# SPDX-FileCopyrightText: 2026 VoxClip contributors
+# SPDX-License-Identifier: MIT
+# Author: Vincent Elkouby
+# Contact: https://github.com/velkouby
 
 from dataclasses import dataclass
 from typing import Any

@@ -1,16 +1,7 @@
-from .openai_key import (
-    KeyValidationResult,
-    OpenAIHTTPKeyValidator,
-    OpenAIKeyValidator,
-    StaticOpenAIKeyValidator,
-)
-from .secrets import (
-    OPENAI_API_KEY_SECRET,
-    InMemorySecretService,
-    KeyringSecretService,
-    SecretError,
-    SecretService,
-)
+# SPDX-FileCopyrightText: 2026 VoxClip contributors
+# SPDX-License-Identifier: MIT
+# Author: Vincent Elkouby
+# Contact: https://github.com/velkouby
 
 __all__ = [
     "OPENAI_API_KEY_SECRET",
