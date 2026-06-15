@@ -3,10 +3,12 @@
 # Author: Vincent Elkouby
 # Contact: https://github.com/velkouby
 
-from collections.abc import AsyncIterable, AsyncIterator
+from __future__ import annotations
+
+from collections.abc import AsyncIterable, AsyncIterator, Mapping
 from dataclasses import dataclass
 from enum import StrEnum
-from typing import Protocol
+from typing import Any, Protocol
 
 from vox_voice_paste.audio import TARGET_SAMPLE_RATE, AudioChunk
 from vox_voice_paste.config import DEFAULT_TRANSCRIPTION_MODEL
@@ -24,6 +26,7 @@ class TranscriptionEvent:
     text: str = ""
     item_id: str | None = None
     error: str | None = None
+    error_context: Mapping[str, Any] | None = None
 
     @classmethod
     def partial(cls, text: str, *, item_id: str | None = None) -> TranscriptionEvent:
@@ -34,8 +37,17 @@ class TranscriptionEvent:
         return cls(type=TranscriptionEventType.FINAL, text=text, item_id=item_id)
 
     @classmethod
-    def error_event(cls, error: str) -> TranscriptionEvent:
-        return cls(type=TranscriptionEventType.ERROR, error=error)
+    def error_event(
+        cls,
+        error: str,
+        *,
+        error_context: Mapping[str, Any] | None = None,
+    ) -> TranscriptionEvent:
+        return cls(
+            type=TranscriptionEventType.ERROR,
+            error=error,
+            error_context=error_context,
+        )
 
 
 @dataclass(frozen=True)

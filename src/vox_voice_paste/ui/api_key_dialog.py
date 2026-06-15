@@ -21,18 +21,22 @@ class OpenAIKeyDialog(QDialog):
         *,
         secret_service: SecretService,
         key_validator: OpenAIKeyValidator | None = None,
+        provider_name: str = "OpenAI",
+        secret_name: str = OPENAI_API_KEY_SECRET,
         parent: QWidget | None = None,
     ) -> None:
         super().__init__(parent)
         self._secrets = secret_service
         self._key_validator = key_validator or OpenAIHTTPKeyValidator()
+        self._provider_name = provider_name
+        self._secret_name = secret_name
 
-        self.setWindowTitle("OpenAI Key")
+        self.setWindowTitle(f"{provider_name} Key")
         self.setMinimumWidth(460)
 
         self.key_input = QLineEdit()
         self.key_input.setEchoMode(QLineEdit.EchoMode.Password)
-        self.key_input.setPlaceholderText("OpenAI API key")
+        self.key_input.setPlaceholderText(f"{provider_name} API key")
         self.status_label = QLabel("The key will be stored in the system keyring.")
 
         self.save_button = QPushButton("Save")
@@ -41,7 +45,7 @@ class OpenAIKeyDialog(QDialog):
         self.cancel_button.clicked.connect(self.reject)
 
         layout = QVBoxLayout()
-        layout.addWidget(QLabel("Enter your OpenAI API key."))
+        layout.addWidget(QLabel(f"Enter your {provider_name} API key."))
         layout.addWidget(self.key_input)
         layout.addWidget(self.status_label)
         layout.addWidget(self.save_button)
@@ -61,7 +65,7 @@ class OpenAIKeyDialog(QDialog):
             return
 
         try:
-            self._secrets.set_secret(OPENAI_API_KEY_SECRET, value)
+            self._secrets.set_secret(self._secret_name, value)
         except SecretError as exc:
             self.status_label.setText(str(exc))
             return

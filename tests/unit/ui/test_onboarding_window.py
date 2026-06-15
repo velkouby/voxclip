@@ -5,6 +5,7 @@ from vox_voice_paste.config import load_config
 from vox_voice_paste.desktop import InMemoryClipboardService
 from vox_voice_paste.security import (
     OPENAI_API_KEY_SECRET,
+    SONIOX_API_KEY_SECRET,
     InMemorySecretService,
     KeyValidationResult,
     StaticOpenAIKeyValidator,
@@ -28,6 +29,32 @@ def test_onboarding_stores_openai_key_without_showing_it(qtbot, tmp_path, monkey
     assert secrets.get_secret(OPENAI_API_KEY_SECRET) == "sk-test-secret"
     assert window.key_input.text() == ""
     assert "sk-test-secret" not in window.key_status.text()
+
+
+def test_onboarding_stores_soniox_key_without_showing_it(qtbot, tmp_path, monkeypatch) -> None:
+    config_path = tmp_path / "config.toml"
+    monkeypatch.setattr("vox_voice_paste.ui.onboarding_window.list_input_devices", lambda: [])
+    secrets = InMemorySecretService()
+    window = OnboardingWindow(
+        config_path=config_path,
+        secret_service=secrets,
+        key_validator=StaticOpenAIKeyValidator(),
+        soniox_key_validator=StaticOpenAIKeyValidator(),
+    )
+    qtbot.addWidget(window)
+
+    window.transcription_provider_combo.setCurrentIndex(
+        window.transcription_provider_combo.findData("soniox")
+    )
+    window.key_input.setText("soniox-test-secret")
+    window.store_key()
+
+    config = load_config(config_path)
+    assert config.transcription_provider == "soniox"
+    assert secrets.get_secret(SONIOX_API_KEY_SECRET) == "soniox-test-secret"
+    assert secrets.get_secret(OPENAI_API_KEY_SECRET) is None
+    assert window.key_input.text() == ""
+    assert "soniox-test-secret" not in window.key_status.text()
 
 
 def test_onboarding_does_not_store_invalid_openai_key(qtbot, tmp_path, monkeypatch) -> None:

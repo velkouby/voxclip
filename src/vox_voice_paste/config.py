@@ -7,7 +7,7 @@ import os
 import tempfile
 import tomllib
 from pathlib import Path
-from typing import Any
+from typing import Any, Literal
 
 import tomli_w
 from platformdirs import user_config_path
@@ -17,10 +17,16 @@ APP_ID = "voxclip"
 LEGACY_APP_IDS = ("vox-voice-paste",)
 CONFIG_FILENAME = "config.toml"
 REALTIME_TRANSCRIPTION_MODEL = "gpt-realtime-whisper"
+SONIOX_REALTIME_TRANSCRIPTION_MODEL = "stt-rt-v4"
+SONIOX_ASYNC_TRANSCRIPTION_MODEL = "stt-async-v5"
+SONIOX_WEBSOCKET_BASE_URL = "wss://stt-rt.soniox.com/transcribe-websocket"
 DEFAULT_TRANSCRIPTION_MODEL = REALTIME_TRANSCRIPTION_MODEL
 DEFAULT_TRANSCRIPTION_DELAY = "low"
 EXPERT_TRANSCRIPTION_DELAY = "high"
 DEFAULT_UBUNTU_SHORTCUT = "Ctrl+Alt+N"
+DEFAULT_TRANSCRIPTION_PROVIDER = "openai"
+
+TranscriptionProvider = Literal["openai", "soniox"]
 
 NON_REALTIME_TRANSCRIPTION_MODELS = {
     "gpt-4o-mini-transcribe",
@@ -42,6 +48,7 @@ class AppConfig(BaseModel):
     config_version: int = Field(default=1, ge=1)
     onboarding_completed: bool = False
     default_input_device_id: str | None = None
+    transcription_provider: TranscriptionProvider = DEFAULT_TRANSCRIPTION_PROVIDER
     transcription_model: str = DEFAULT_TRANSCRIPTION_MODEL
     transcription_language: str | None = None
     transcription_delay: str = Field(

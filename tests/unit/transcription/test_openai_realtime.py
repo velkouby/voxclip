@@ -12,6 +12,7 @@ from vox_voice_paste.transcription.openai_realtime import (
     OpenAIRealtimeTranscriptionService,
     build_session_update,
     parse_realtime_event,
+    safe_error_context,
     send_audio,
     websocket_url,
 )
@@ -31,7 +32,7 @@ def test_build_session_update_uses_transcription_session_shape() -> None:
     assert payload["session"]["type"] == "transcription"
     assert payload["session"]["audio"]["input"]["format"] == {
         "type": "audio/pcm",
-        "rate": 24_000,
+        "rate": 16_000,
     }
     assert payload["session"]["audio"]["input"]["transcription"] == {
         "model": "gpt-realtime-whisper",
@@ -45,6 +46,18 @@ def test_websocket_url_uses_transcription_intent() -> None:
     url = websocket_url(TranscriptionConfig(api_key="sk-test", model="gpt-realtime-whisper"))
 
     assert url == "wss://api.openai.com/v1/realtime?intent=transcription"
+
+
+def test_openai_safe_error_context_excludes_api_key() -> None:
+    context = safe_error_context(
+        TranscriptionConfig(api_key="sk-test-secret", model="gpt-realtime-whisper"),
+        stage="websocket",
+    )
+
+    raw_context = json.dumps(context)
+    assert context["provider"] == "openai"
+    assert context["model"] == "gpt-realtime-whisper"
+    assert "sk-test-secret" not in raw_context
 
 
 def test_parse_realtime_delta_and_completed_events() -> None:
@@ -124,6 +137,8 @@ def test_openai_service_reports_missing_api_key_without_network() -> None:
     assert len(events) == 1
     assert events[0].type is TranscriptionEventType.ERROR
     assert events[0].error == "OpenAI API key is missing."
+    assert events[0].error_context["provider"] == "openai"
+    assert events[0].error_context["stage"] == "api_key"
 
 
 def test_openai_service_reports_websocket_error_detail(monkeypatch) -> None:

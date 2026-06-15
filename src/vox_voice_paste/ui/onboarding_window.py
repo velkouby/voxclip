@@ -22,7 +22,14 @@ from vox_voice_paste.audio import AudioDeviceError, AudioInputDevice, list_input
 from vox_voice_paste.config import DEFAULT_UBUNTU_SHORTCUT, load_config, save_config
 from vox_voice_paste.desktop import ClipboardError, ClipboardService, SystemClipboardService
 from vox_voice_paste.desktop.shortcuts import DEFAULT_SHORTCUT_COMMAND
-from vox_voice_paste.security import OpenAIHTTPKeyValidator, OpenAIKeyValidator, SecretService
+from vox_voice_paste.security import (
+    OPENAI_API_KEY_SECRET,
+    SONIOX_API_KEY_SECRET,
+    OpenAIHTTPKeyValidator,
+    OpenAIKeyValidator,
+    SecretService,
+    SonioxHTTPKeyValidator,
+)
 
 from .api_key_dialog import OpenAIKeyDialog
 
@@ -37,6 +44,7 @@ class OnboardingWindow(QDialog):
         config_path: Path | None = None,
         secret_service: SecretService,
         key_validator: OpenAIKeyValidator | None = None,
+        soniox_key_validator: OpenAIKeyValidator | None = None,
         clipboard_service: ClipboardService | None = None,
         parent: QWidget | None = None,
     ) -> None:
@@ -44,6 +52,7 @@ class OnboardingWindow(QDialog):
         self._config_path = config_path
         self._secrets = secret_service
         self._key_validator = key_validator or OpenAIHTTPKeyValidator()
+        self._soniox_key_validator = soniox_key_validator or SonioxHTTPKeyValidator()
         self._clipboard = clipboard_service or SystemClipboardService()
         self._config = load_config(config_path)
 
@@ -85,21 +94,33 @@ class OnboardingWindow(QDialog):
         layout = QVBoxLayout()
         layout.addWidget(QLabel("Welcome to VoxClip"))
         layout.addWidget(QLabel("VoxClip copies the final transcript; you paste it with Ctrl+V."))
-        layout.addWidget(QLabel("Live transcription sends microphone audio to the OpenAI API."))
+        layout.addWidget(QLabel("Live transcription sends microphone audio to the selected API."))
         page.setLayout(layout)
         return page
 
     def _key_page(self) -> QWidget:
         page = QWidget()
+        self.transcription_provider_combo = QComboBox()
+        self.transcription_provider_combo.addItem("OpenAI", "openai")
+        self.transcription_provider_combo.addItem("Soniox", "soniox")
+        provider_index = self.transcription_provider_combo.findData(
+            self._config.transcription_provider
+        )
+        self.transcription_provider_combo.setCurrentIndex(max(provider_index, 0))
+        self.transcription_provider_combo.currentIndexChanged.connect(
+            self._set_transcription_provider
+        )
         self.key_input = QLineEdit()
         self.key_input.setEchoMode(QLineEdit.EchoMode.Password)
-        self.key_input.setPlaceholderText("OpenAI API key")
+        self.key_input.setPlaceholderText(f"{self._provider_label()} API key")
         self.key_status = QLabel("Key not verified")
         self.store_key_button = QPushButton("Save key")
         self.store_key_button.clicked.connect(self.store_key)
 
         layout = QVBoxLayout()
-        layout.addWidget(QLabel("OpenAI key"))
+        layout.addWidget(QLabel("Transcription provider"))
+        layout.addWidget(self.transcription_provider_combo)
+        layout.addWidget(QLabel("API key"))
         layout.addWidget(self.key_input)
         layout.addWidget(self.store_key_button)
         layout.addWidget(self.key_status)
@@ -166,9 +187,12 @@ class OnboardingWindow(QDialog):
         if not value:
             self.key_status.setText("Key is empty.")
             return
+        provider = self._config.transcription_provider
         dialog = OpenAIKeyDialog(
             secret_service=self._secrets,
-            key_validator=self._key_validator,
+            key_validator=self._provider_validator(provider),
+            provider_name=self._provider_label(),
+            secret_name=_provider_secret_name(provider),
             parent=self,
         )
         dialog.key_input.setText(value)
@@ -207,6 +231,22 @@ class OnboardingWindow(QDialog):
         save_config(self._config, self._config_path)
         self.accept()
 
+    @Slot(int)
+    def _set_transcription_provider(self, _index: int = -1) -> None:
+        provider = self.transcription_provider_combo.currentData()
+        if provider not in {"openai", "soniox"}:
+            return
+        self._config.transcription_provider = provider
+        self.key_input.setPlaceholderText(f"{self._provider_label()} API key")
+        self.key_status.setText("Key not verified")
+        save_config(self._config, self._config_path)
+
+    def _provider_label(self) -> str:
+        return "Soniox" if self._config.transcription_provider == "soniox" else "OpenAI"
+
+    def _provider_validator(self, provider: str) -> OpenAIKeyValidator:
+        return self._soniox_key_validator if provider == "soniox" else self._key_validator
+
     def _sync_buttons(self) -> None:
         index = self.pages.currentIndex()
         last_index = self.pages.count() - 1
@@ -218,3 +258,7 @@ class OnboardingWindow(QDialog):
 def _device_label(device: AudioInputDevice) -> str:
     marker = " (default)" if device.is_default else ""
     return f"{device.name}{marker}"
+
+
+def _provider_secret_name(provider: str) -> str:
+    return SONIOX_API_KEY_SECRET if provider == "soniox" else OPENAI_API_KEY_SECRET

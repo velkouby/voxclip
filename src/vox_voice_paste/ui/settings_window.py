@@ -8,6 +8,7 @@ from pathlib import Path
 from PySide6.QtCore import Slot
 from PySide6.QtWidgets import (
     QCheckBox,
+    QComboBox,
     QDialog,
     QLabel,
     QLineEdit,
@@ -32,10 +33,13 @@ from vox_voice_paste.desktop import (
     set_ubuntu_shortcut,
 )
 from vox_voice_paste.security import (
+    OPENAI_API_KEY_SECRET,
+    SONIOX_API_KEY_SECRET,
     KeyringSecretService,
     OpenAIHTTPKeyValidator,
     OpenAIKeyValidator,
     SecretService,
+    SonioxHTTPKeyValidator,
 )
 
 from .api_key_dialog import OpenAIKeyDialog
@@ -49,6 +53,7 @@ class SettingsWindow(QDialog):
         config_path: Path | None = None,
         secret_service: SecretService | None = None,
         key_validator: OpenAIKeyValidator | None = None,
+        soniox_key_validator: OpenAIKeyValidator | None = None,
         parent: QWidget | None = None,
         clipboard_service: ClipboardService | None = None,
         startup_shortcut: str | None = None,
@@ -57,6 +62,7 @@ class SettingsWindow(QDialog):
         self._clipboard = clipboard_service or SystemClipboardService()
         self._secrets = secret_service or KeyringSecretService()
         self._key_validator = key_validator or OpenAIHTTPKeyValidator()
+        self._soniox_key_validator = soniox_key_validator or SonioxHTTPKeyValidator()
         self._config_path = config_path
         self._config = load_config(config_path)
         resolved_config_path = config_path or default_config_path()
@@ -65,9 +71,21 @@ class SettingsWindow(QDialog):
         self.setWindowTitle("VoxClip - Settings")
         self.setMinimumWidth(520)
 
-        self.key_status = QLabel("OpenAI key is stored in the system keyring.")
-        self.configure_key_button = QPushButton("Configure OpenAI key")
-        self.configure_key_button.clicked.connect(self.configure_openai_key)
+        self.transcription_provider_combo = QComboBox()
+        self.transcription_provider_combo.addItem("OpenAI", "openai")
+        self.transcription_provider_combo.addItem("Soniox", "soniox")
+        provider_index = self.transcription_provider_combo.findData(
+            self._config.transcription_provider
+        )
+        self.transcription_provider_combo.setCurrentIndex(max(provider_index, 0))
+        self.transcription_provider_combo.currentIndexChanged.connect(
+            self._set_transcription_provider
+        )
+
+        self.key_status = QLabel(self._key_status_text())
+        self.configure_key_button = QPushButton()
+        self.configure_key_button.clicked.connect(self.configure_api_key)
+        self._sync_provider_controls()
 
         self.shortcut_command = QLineEdit(SHORTCUT_COMMAND)
         self.shortcut_command.setReadOnly(True)
@@ -106,6 +124,8 @@ class SettingsWindow(QDialog):
         layout.addWidget(self.shortcut_command)
         layout.addWidget(self.copy_shortcut_button)
         layout.addWidget(self.shortcut_status)
+        layout.addWidget(QLabel("Transcription provider:"))
+        layout.addWidget(self.transcription_provider_combo)
         layout.addWidget(self.configure_key_button)
         layout.addWidget(self.key_status)
         layout.addWidget(self.transcription_expert_checkbox)
@@ -115,15 +135,23 @@ class SettingsWindow(QDialog):
 
     @Slot()
     def configure_openai_key(self) -> None:
+        self.configure_api_key()
+
+    @Slot()
+    def configure_api_key(self) -> None:
+        provider = self._config.transcription_provider
+        label = _provider_label(provider)
         dialog = OpenAIKeyDialog(
             secret_service=self._secrets,
-            key_validator=self._key_validator,
+            key_validator=self._provider_validator(provider),
+            provider_name=label,
+            secret_name=_provider_secret_name(provider),
             parent=self,
         )
         if dialog.exec() == QDialog.DialogCode.Accepted:
-            self.key_status.setText("OpenAI key saved.")
+            self.key_status.setText(f"{label} key saved.")
         else:
-            self.key_status.setText("OpenAI key unchanged.")
+            self.key_status.setText(f"{label} key unchanged.")
 
     @Slot()
     def copy_shortcut_command(self) -> None:
@@ -157,3 +185,32 @@ class SettingsWindow(QDialog):
         )
         self.transcription_expert_warning.setVisible(enabled)
         save_config(self._config, self._config_path)
+
+    @Slot(int)
+    def _set_transcription_provider(self, _index: int = -1) -> None:
+        provider = self.transcription_provider_combo.currentData()
+        if provider not in {"openai", "soniox"}:
+            return
+        self._config.transcription_provider = provider
+        save_config(self._config, self._config_path)
+        self._sync_provider_controls()
+
+    def _sync_provider_controls(self) -> None:
+        label = _provider_label(self._config.transcription_provider)
+        self.configure_key_button.setText(f"Configure {label} key")
+        self.key_status.setText(self._key_status_text())
+
+    def _key_status_text(self) -> str:
+        label = _provider_label(self._config.transcription_provider)
+        return f"{label} key is stored in the system keyring."
+
+    def _provider_validator(self, provider: str) -> OpenAIKeyValidator:
+        return self._soniox_key_validator if provider == "soniox" else self._key_validator
+
+
+def _provider_label(provider: str) -> str:
+    return "Soniox" if provider == "soniox" else "OpenAI"
+
+
+def _provider_secret_name(provider: str) -> str:
+    return SONIOX_API_KEY_SECRET if provider == "soniox" else OPENAI_API_KEY_SECRET

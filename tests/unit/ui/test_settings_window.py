@@ -9,7 +9,11 @@ from vox_voice_paste.config import (
     load_config,
 )
 from vox_voice_paste.desktop import InMemoryClipboardService
-from vox_voice_paste.security import InMemorySecretService, StaticOpenAIKeyValidator
+from vox_voice_paste.security import (
+    SONIOX_API_KEY_SECRET,
+    InMemorySecretService,
+    StaticOpenAIKeyValidator,
+)
 from vox_voice_paste.ui.onboarding_window import SHORTCUT_COMMAND
 from vox_voice_paste.ui.settings_window import SettingsWindow
 
@@ -48,6 +52,58 @@ def test_settings_window_updates_status_after_key_dialog_accepts(
     window.configure_openai_key()
 
     assert window.key_status.text() == "OpenAI key saved."
+
+
+def test_settings_window_persists_provider_selection(qtbot, tmp_path) -> None:
+    config_path = tmp_path / "config.toml"
+    window = SettingsWindow(
+        config_path=config_path,
+        secret_service=InMemorySecretService(),
+        key_validator=StaticOpenAIKeyValidator(),
+        soniox_key_validator=StaticOpenAIKeyValidator(),
+    )
+    qtbot.addWidget(window)
+
+    window.transcription_provider_combo.setCurrentIndex(
+        window.transcription_provider_combo.findData("soniox")
+    )
+
+    assert load_config(config_path).transcription_provider == "soniox"
+    assert window.configure_key_button.text() == "Configure Soniox key"
+    assert "Soniox" in window.key_status.text()
+
+
+def test_settings_window_configures_selected_soniox_key(
+    qtbot,
+    tmp_path,
+    monkeypatch,
+) -> None:
+    recorded = {}
+
+    class AcceptedDialog:
+        def __init__(self, **kwargs) -> None:
+            recorded.update(kwargs)
+
+        def exec(self) -> QDialog.DialogCode:
+            return QDialog.DialogCode.Accepted
+
+    monkeypatch.setattr("vox_voice_paste.ui.settings_window.OpenAIKeyDialog", AcceptedDialog)
+    window = SettingsWindow(
+        config_path=tmp_path / "config.toml",
+        secret_service=InMemorySecretService(),
+        key_validator=StaticOpenAIKeyValidator(),
+        soniox_key_validator=StaticOpenAIKeyValidator(),
+    )
+    qtbot.addWidget(window)
+    window.transcription_provider_combo.setCurrentIndex(
+        window.transcription_provider_combo.findData("soniox")
+    )
+
+    window.configure_api_key()
+
+    assert recorded["provider_name"] == "Soniox"
+    assert recorded["secret_name"] == SONIOX_API_KEY_SECRET
+    assert window.key_status.text() == "Soniox key saved."
 
 
 def test_settings_window_copies_shortcut_command(qtbot, tmp_path) -> None:

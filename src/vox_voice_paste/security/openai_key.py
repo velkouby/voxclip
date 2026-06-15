@@ -42,6 +42,28 @@ class OpenAIHTTPKeyValidator:
         return KeyValidationResult(True, "OpenAI connection verified.")
 
 
+class SonioxHTTPKeyValidator:
+    def __init__(self, *, timeout_seconds: float = 10.0) -> None:
+        self._timeout_seconds = timeout_seconds
+
+    def validate(self, api_key: str) -> KeyValidationResult:
+        request = urllib.request.Request(
+            "https://api.soniox.com/v1/models",
+            headers={"Authorization": f"Bearer {api_key}"},
+            method="GET",
+        )
+        try:
+            with urllib.request.urlopen(request, timeout=self._timeout_seconds) as response:
+                json.loads(response.read().decode("utf-8"))
+        except urllib.error.HTTPError as exc:
+            if exc.code in {401, 403}:
+                return KeyValidationResult(False, "Invalid Soniox API key.")
+            return KeyValidationResult(False, "Soniox refused the connection test.")
+        except (OSError, TimeoutError, json.JSONDecodeError):
+            return KeyValidationResult(False, "Unable to connect to Soniox.")
+        return KeyValidationResult(True, "Soniox connection verified.")
+
+
 class StaticOpenAIKeyValidator:
     def __init__(self, result: KeyValidationResult | None = None) -> None:
         self._result = result or KeyValidationResult(True, "OpenAI connection verified.")

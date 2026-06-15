@@ -4,6 +4,7 @@ import pytest
 
 from vox_voice_paste.config import (
     DEFAULT_TRANSCRIPTION_MODEL,
+    DEFAULT_TRANSCRIPTION_PROVIDER,
     NON_REALTIME_TRANSCRIPTION_MODELS,
     AppConfig,
     ConfigError,
@@ -18,6 +19,7 @@ def test_missing_config_returns_default(tmp_path) -> None:
 
     assert config == AppConfig()
     assert config.onboarding_completed is False
+    assert config.transcription_provider == DEFAULT_TRANSCRIPTION_PROVIDER
 
 
 def test_save_and_load_config_without_secret_content(tmp_path) -> None:
@@ -31,8 +33,34 @@ def test_save_and_load_config_without_secret_content(tmp_path) -> None:
     save_config(config, config_path)
 
     assert load_config(config_path) == config
-    assert "openai" not in config_path.read_text(encoding="utf-8").lower()
+    assert "sk-" not in config_path.read_text(encoding="utf-8").lower()
     assert not list(tmp_path.glob("*.tmp"))
+
+
+def test_config_persists_soniox_provider(tmp_path) -> None:
+    config_path = tmp_path / "config.toml"
+    config = AppConfig(transcription_provider="soniox")
+
+    save_config(config, config_path)
+
+    assert load_config(config_path).transcription_provider == "soniox"
+
+
+def test_config_without_provider_keeps_openai_default(tmp_path) -> None:
+    config_path = tmp_path / "config.toml"
+    config_path.write_text("onboarding_completed = true\n", encoding="utf-8")
+
+    config = load_config(config_path)
+
+    assert config.transcription_provider == "openai"
+
+
+def test_invalid_transcription_provider_raises_config_error(tmp_path) -> None:
+    config_path = tmp_path / "config.toml"
+    config_path.write_text('transcription_provider = "bad"\n', encoding="utf-8")
+
+    with pytest.raises(ConfigError):
+        load_config(config_path)
 
 
 @pytest.mark.parametrize("model", sorted(NON_REALTIME_TRANSCRIPTION_MODELS))

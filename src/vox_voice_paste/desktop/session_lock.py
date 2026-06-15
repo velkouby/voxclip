@@ -3,6 +3,8 @@
 # Author: Vincent Elkouby
 # Contact: https://github.com/velkouby
 
+from __future__ import annotations
+
 import fcntl
 import os
 import tempfile

@@ -3,4 +3,6 @@
 # Author: Vincent Elkouby
 # Contact: https://github.com/velkouby
 
+from .cli import main
+
 __all__ = ["main"]

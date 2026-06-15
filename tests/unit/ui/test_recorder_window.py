@@ -1,7 +1,9 @@
 from __future__ import annotations
 
 import asyncio
+import json
 
+import pytest
 from PySide6.QtCore import Qt
 
 from vox_voice_paste.audio import AudioChunk
@@ -13,6 +15,21 @@ from vox_voice_paste.desktop import (
 from vox_voice_paste.transcription import MockTranscriptionService, TranscriptionEvent
 from vox_voice_paste.ui import RecorderState, RecorderWindow
 from vox_voice_paste.ui.recorder_window import RECORD_SYMBOL
+
+
+@pytest.fixture(autouse=True)
+def error_log_entries(monkeypatch):
+    entries = []
+
+    def fake_record_error(**kwargs):
+        entries.append(kwargs)
+        return None
+
+    monkeypatch.setattr(
+        "vox_voice_paste.ui.recorder_window.record_error",
+        fake_record_error,
+    )
+    return entries
 
 
 def test_recorder_window_starts_in_idle_state(qtbot) -> None:
@@ -31,7 +48,10 @@ def test_recorder_window_stays_on_top(qtbot) -> None:
     assert window.windowFlags() & Qt.WindowType.WindowStaysOnTopHint
 
 
-def test_recorder_window_mock_transcription_reaches_success(qtbot) -> None:
+def test_recorder_window_mock_transcription_reaches_success(
+    qtbot,
+    error_log_entries,
+) -> None:
     clipboard = InMemoryClipboardService()
     notifications = InMemoryNotificationService()
     window = RecorderWindow(
@@ -48,6 +68,7 @@ def test_recorder_window_mock_transcription_reaches_success(qtbot) -> None:
     assert window._buffer.final_text == "bonjour monde"
     assert clipboard.text == "bonjour monde"
     assert notifications.notifications[-1].body == "Text copied. Press Ctrl+V to paste."
+    assert error_log_entries == []
 
 
 def test_recorder_window_closes_on_success_when_requested(qtbot) -> None:
@@ -299,7 +320,10 @@ def test_recorder_window_popup_for_empty_transcript_in_record_and_copy_mode(
     assert popups == [("VoxClip", "Transcription returned empty text.")]
 
 
-def test_recorder_window_surfaces_clipboard_error_in_status(qtbot) -> None:
+def test_recorder_window_surfaces_clipboard_error_in_status(
+    qtbot,
+    error_log_entries,
+) -> None:
     window = RecorderWindow(
         transcription_service=MockTranscriptionService("bonjour monde", delay_seconds=0),
         clipboard_service=FailingClipboardService(),
@@ -313,6 +337,10 @@ def test_recorder_window_surfaces_clipboard_error_in_status(qtbot) -> None:
 
     assert window._buffer.text == "bonjour monde"
     assert "clipboard failed" in window.status_label.text()
+    assert len(error_log_entries) == 1
+    assert error_log_entries[0]["event"] == "recorder_error"
+    assert error_log_entries[0]["context"]["stage"] == "clipboard"
+    assert "bonjour monde" not in json.dumps(error_log_entries, ensure_ascii=False)
 
 
 def test_recorder_window_real_service_path_uses_audio_source(qtbot) -> None:

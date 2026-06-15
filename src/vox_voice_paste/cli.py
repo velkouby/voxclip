@@ -5,16 +5,25 @@
 
 import argparse
 import getpass
-from collections.abc import Sequence
+from collections.abc import Mapping, Sequence
 from importlib.metadata import PackageNotFoundError, version
+from typing import Any
 
 from . import __version__
 from .audio import AudioDeviceError, format_input_devices, list_input_devices
 from .config import DEFAULT_UBUNTU_SHORTCUT, load_config
 from .desktop.diagnostics import build_diagnostic_lines, format_diagnostic_report
 from .desktop.shortcuts import DEFAULT_SHORTCUT_COMMAND
+from .error_log import default_error_log_path, read_error_log_tail, record_error
 from .logging_config import configure_logging
-from .security import OPENAI_API_KEY_SECRET, KeyringSecretService, SecretError, SecretService
+from .security import (
+    OPENAI_API_KEY_SECRET,
+    SONIOX_API_KEY_SECRET,
+    KeyringSecretService,
+    SecretError,
+    SecretService,
+    SonioxHTTPKeyValidator,
+)
 
 DIST_NAME = "voxclip"
 
@@ -90,6 +99,11 @@ def build_parser() -> argparse.ArgumentParser:
         help="print a diagnostic report without secrets, audio, or transcripts",
     )
     parser.add_argument(
+        "--show-error-log",
+        action="store_true",
+        help="print the persistent error log path and recent entries",
+    )
+    parser.add_argument(
         "--set-openai-key",
         action="store_true",
         help="prompt for an OpenAI API key and store it in the system keyring",
@@ -103,6 +117,21 @@ def build_parser() -> argparse.ArgumentParser:
         "--check-openai-key",
         action="store_true",
         help="print whether an OpenAI API key is present without showing it",
+    )
+    parser.add_argument(
+        "--set-soniox-key",
+        action="store_true",
+        help="prompt for a Soniox API key, verify it, and store it in the system keyring",
+    )
+    parser.add_argument(
+        "--delete-soniox-key",
+        action="store_true",
+        help="delete the stored Soniox API key from the system keyring",
+    )
+    parser.add_argument(
+        "--check-soniox-key",
+        action="store_true",
+        help="print whether a Soniox API key is present without showing it",
     )
     return parser
 
@@ -136,6 +165,11 @@ def main(
                 command=DEFAULT_SHORTCUT_COMMAND,
             )
         except ShortcutInstallError as exc:
+            _record_cli_error(
+                "set_ubuntu_shortcut_failed",
+                exc,
+                context={"shortcut": args.set_ubuntu_shortcut},
+            )
             parser.exit(1, f"voxclip: {exc}\n")
         print(
             f"Shortcut configured: {args.set_ubuntu_shortcut} -> "
@@ -154,6 +188,7 @@ def main(
             remove_ubuntu_shortcut()
             remove_shortcut_autostart_entry()
         except ShortcutInstallError as exc:
+            _record_cli_error("remove_ubuntu_shortcut_failed", exc)
             parser.exit(1, f"voxclip: {exc}\n")
         print("GNOME shortcut binding and autostart entry removed.")
         return 0
@@ -172,6 +207,7 @@ def main(
         try:
             devices = list_input_devices()
         except AudioDeviceError as exc:
+            _record_cli_error("list_audio_devices_failed", exc)
             parser.exit(1, f"voxclip: {exc}\n")
         print(format_input_devices(devices))
         return 0
@@ -181,6 +217,10 @@ def main(
         print(format_diagnostic_report(lines))
         return 0
 
+    if args.show_error_log:
+        _print_error_log()
+        return 0
+
     if args.set_openai_key:
         value = getpass.getpass("OpenAI API key: ").strip()
         if not value:
@@ -188,6 +228,7 @@ def main(
         try:
             secrets.set_secret(OPENAI_API_KEY_SECRET, value)
         except SecretError as exc:
+            _record_cli_error("set_openai_key_failed", exc)
             parser.exit(1, f"voxclip: {exc}\n")
         print("OpenAI API key stored in the system keyring.")
         return 0
@@ -196,6 +237,7 @@ def main(
         try:
             secrets.delete_secret(OPENAI_API_KEY_SECRET)
         except SecretError as exc:
+            _record_cli_error("delete_openai_key_failed", exc)
             parser.exit(1, f"voxclip: {exc}\n")
         print("OpenAI API key deleted from the system keyring.")
         return 0
@@ -204,10 +246,87 @@ def main(
         try:
             is_present = secrets.get_secret(OPENAI_API_KEY_SECRET) is not None
         except SecretError as exc:
+            _record_cli_error("check_openai_key_failed", exc)
             parser.exit(1, f"voxclip: {exc}\n")
         print(f"OpenAI API key: {'present' if is_present else 'missing'}")
+        return 0
+
+    if args.set_soniox_key:
+        value = getpass.getpass("Soniox API key: ").strip()
+        if not value:
+            parser.exit(1, "voxclip: Soniox API key was empty\n")
+        validation = SonioxHTTPKeyValidator().validate(value)
+        if not validation.ok:
+            record_error(
+                event="set_soniox_key_validation_failed",
+                component="cli",
+                message=validation.message,
+                context={"provider": "soniox"},
+            )
+            parser.exit(1, f"voxclip: {validation.message}\n")
+        try:
+            secrets.set_secret(SONIOX_API_KEY_SECRET, value)
+        except SecretError as exc:
+            _record_cli_error("set_soniox_key_failed", exc)
+            parser.exit(1, f"voxclip: {exc}\n")
+        print("Soniox API key stored in the system keyring.")
+        return 0
+
+    if args.delete_soniox_key:
+        try:
+            secrets.delete_secret(SONIOX_API_KEY_SECRET)
+        except SecretError as exc:
+            _record_cli_error("delete_soniox_key_failed", exc)
+            parser.exit(1, f"voxclip: {exc}\n")
+        print("Soniox API key deleted from the system keyring.")
+        return 0
+
+    if args.check_soniox_key:
+        try:
+            is_present = secrets.get_secret(SONIOX_API_KEY_SECRET) is not None
+        except SecretError as exc:
+            _record_cli_error("check_soniox_key_failed", exc)
+            parser.exit(1, f"voxclip: {exc}\n")
+        print(f"Soniox API key: {'present' if is_present else 'missing'}")
         return 0
 
     from .app import run_main_app
 
     return run_main_app(secret_service=secrets)
+
+
+def _record_cli_error(
+    event: str,
+    exc: Exception,
+    *,
+    context: Mapping[str, Any] | None = None,
+) -> None:
+    error_context = {"exception_type": exc.__class__.__name__}
+    if context:
+        error_context.update(context)
+    record_error(
+        event=event,
+        component="cli",
+        message=str(exc),
+        context=error_context,
+    )
+
+
+def _print_error_log() -> None:
+    path = default_error_log_path()
+    print(f"VoxClip error log: {path}")
+    if not path.exists():
+        print("No error log found.")
+        return
+
+    try:
+        tail = read_error_log_tail(path=path)
+    except OSError as exc:
+        print(f"Unable to read error log: {exc}")
+        return
+    if not tail:
+        print("Error log is empty.")
+        return
+
+    print("Last 50 entries:")
+    print(tail)

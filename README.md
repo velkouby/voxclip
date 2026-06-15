@@ -206,6 +206,7 @@ VoxClip uses two layers of configuration:
 - `--ensure-ubuntu-shortcut` (reinstall the managed shortcut)
 - `--list-audio-devices`
 - `--diagnose`
+- `--show-error-log`
 
 ### Advanced config file parameters
 
@@ -302,7 +303,11 @@ uv run python packaging/build_deb.py --offline
 - Diagnostics report whether a key exists but never print the key.
 - VoxClip does not persist microphone audio to disk.
 - VoxClip does not keep a local transcript history by default.
-- Technical logs avoid transcript, audio, and secret content.
+- Persistent error logs are written to `~/.local/state/voxclip/errors.log`
+  only when an error occurs.
+- Error logs include sanitized technical context and avoid transcript, audio,
+  clipboard text, and secret content.
+- To inspect recent persistent errors, run `voxclip --show-error-log`.
 
 ## License
 

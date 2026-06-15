@@ -6,6 +6,16 @@ Run the diagnostic report first:
 voxclip --diagnose
 ```
 
+Inspect recent persistent errors:
+
+```bash
+voxclip --show-error-log
+```
+
+The persistent error journal is stored at `~/.local/state/voxclip/errors.log`.
+It is written only when an error occurs and must not contain dictated text,
+microphone audio, clipboard text, or API keys.
+
 Common issues:
 
 - `audio_devices: unavailable`: install `libportaudio2` and check microphone access.

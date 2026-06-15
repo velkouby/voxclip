@@ -32,23 +32,42 @@ class OpenAIRealtimeTranscriptionService:
         audio_chunks: AsyncIterable[AudioChunk | bytes],
     ) -> AsyncIterator[TranscriptionEvent]:
         if not self._config.api_key:
-            yield TranscriptionEvent.error_event("OpenAI API key is missing.")
+            yield TranscriptionEvent.error_event(
+                "OpenAI API key is missing.",
+                error_context=safe_error_context(self._config, stage="api_key"),
+            )
             return
 
         try:
             async for event in self._transcribe(audio_chunks):
                 yield event
         except TimeoutError:
-            yield TranscriptionEvent.error_event("Timed out while waiting for final transcript.")
+            yield TranscriptionEvent.error_event(
+                "Timed out while waiting for final transcript.",
+                error_context=safe_error_context(self._config, stage="final_timeout"),
+            )
         except OSError:
-            yield TranscriptionEvent.error_event("Network error while contacting OpenAI.")
+            yield TranscriptionEvent.error_event(
+                "Network error while contacting OpenAI.",
+                error_context=safe_error_context(self._config, stage="network"),
+            )
         except WebSocketException as exc:
             yield TranscriptionEvent.error_event(
-                f"Realtime transcription connection failed: {_safe_error_detail(exc)}"
+                f"Realtime transcription connection failed: {_safe_error_detail(exc)}",
+                error_context=safe_error_context(
+                    self._config,
+                    stage="websocket",
+                    exception_type=exc.__class__.__name__,
+                ),
             )
         except Exception as exc:
             yield TranscriptionEvent.error_event(
-                f"Realtime transcription failed: {_safe_error_detail(exc)}"
+                f"Realtime transcription failed: {_safe_error_detail(exc)}",
+                error_context=safe_error_context(
+                    self._config,
+                    stage="unexpected",
+                    exception_type=exc.__class__.__name__,
+                ),
             )
 
     async def _transcribe(
@@ -72,8 +91,22 @@ class OpenAIRealtimeTranscriptionService:
                     event = parse_realtime_event(json.loads(raw_event))
                     if event is None:
                         continue
+                    if (
+                        event.type is TranscriptionEventType.ERROR
+                        and event.error_context is None
+                    ):
+                        event = TranscriptionEvent.error_event(
+                            event.error or "OpenAI realtime error.",
+                            error_context=safe_error_context(
+                                self._config,
+                                stage="server_event",
+                            ),
+                        )
                     yield event
-                    if event.type in {TranscriptionEventType.FINAL, TranscriptionEventType.ERROR}:
+                    if event.type in {
+                        TranscriptionEventType.FINAL,
+                        TranscriptionEventType.ERROR,
+                    }:
                         break
             finally:
                 if not sender.done():
@@ -109,6 +142,31 @@ def build_session_update(config: TranscriptionConfig) -> dict[str, Any]:
             },
         },
     }
+
+
+def safe_error_context(
+    config: TranscriptionConfig,
+    *,
+    stage: str,
+    exception_type: str | None = None,
+) -> dict[str, Any]:
+    context: dict[str, Any] = {
+        "provider": "openai",
+        "transport": "websocket",
+        "stage": stage,
+        "endpoint": websocket_url(config),
+        "model": config.model,
+        "language": config.language,
+        "delay": config.delay,
+        "sample_rate": config.sample_rate,
+        "connect_timeout_seconds": config.connect_timeout_seconds,
+        "final_timeout_seconds": config.final_timeout_seconds,
+        "close_timeout_seconds": config.close_timeout_seconds,
+        "session_update": build_session_update(config),
+    }
+    if exception_type is not None:
+        context["exception_type"] = exception_type
+    return context
 
 
 async def send_audio(

@@ -6,12 +6,15 @@ present in `releases/`.
 ## Latest
 
 - Download: [voxclip_latest_amd64.deb](./voxclip_latest_amd64.deb)
-- SHA256: `6ebab1312e0f80998bce2eac0d1c806bd44cb8c24103df2a9b8bee87a4713308`
-- Size: 70.3 MB
+- SHA256: `d2ec1a7368affc42ddf3fe26304278d09eb683420ba200015b8101733b8a5252`
+- Size: 70.4 MB
 
 ## Available Releases
 
 | Version | Architecture | Download | SHA256 | Size |
 | --- | --- | --- | --- | --- |
-| 0.2.1 | amd64 | [voxclip_0.2.1_amd64.deb](./voxclip_0.2.1_amd64.deb) | `6ebab1312e0f80998bce2eac0d1c806bd44cb8c24103df2a9b8bee87a4713308` | 70.3 MB |
+| 0.2.4 | amd64 | [voxclip_0.2.4_amd64.deb](./voxclip_0.2.4_amd64.deb) | `d2ec1a7368affc42ddf3fe26304278d09eb683420ba200015b8101733b8a5252` | 70.4 MB |
+| 0.2.3 | amd64 | [voxclip_0.2.3_amd64.deb](./voxclip_0.2.3_amd64.deb) | `7326969848d8f49ef862b3266f2dabbc9c76438918acf69302c3a285cf75f5b9` | 70.4 MB |
+| 0.2.2 | amd64 | [voxclip_0.2.2_amd64.deb](./voxclip_0.2.2_amd64.deb) | `1b74065db624a1a3aa1a22ba72b33a68d0732ab301e8dd26bbf3106ec264eabe` | 70.3 MB |
+| 0.2.1 | amd64 | [voxclip_0.2.1_amd64.deb](./voxclip_0.2.1_amd64.deb) | `d8ecd0fbac97b07a96e7b6677f0bff1ae144a479e383c80cb711087efb509643` | 70.3 MB |
 | 0.2.0 | amd64 | [voxclip_0.2.0_amd64.deb](./voxclip_0.2.0_amd64.deb) | `f8847312733cff08aadc7e990218b744335ba4dea015b57cbec1eb5cd22cb410` | 70.3 MB |

@@ -1,22 +1,11 @@
 [project]
 name = "voxclip"
-version = "0.2.1"
+version = "0.2.4"
 description = "Ubuntu desktop voice dictation helper that copies transcriptions to the clipboard."
 authors = [{name = "Vincent Elkouby"}]
 readme = "README.md"
 license = { file = "LICENSE" }
 requires-python = ">=3.12"
-classifiers = [
-    "License :: OSI Approved :: MIT License",
-    "Operating System :: POSIX :: Linux",
-    "Programming Language :: Python :: 3",
-    "Programming Language :: Python :: 3.12",
-]
-
-[project.urls]
-Home = "https://github.com/velkouby/voxclip"
-Issue Tracker = "https://github.com/velkouby/voxclip/issues"
-Author Contact = "https://github.com/velkouby"
 dependencies = [
     "keyring>=25.7",
     "numpy>=2.3",
@@ -27,6 +16,17 @@ dependencies = [
     "tomli-w>=1.2",
     "websockets>=15.0",
 ]
+classifiers = [
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: POSIX :: Linux",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.12",
+]
+
+[project.urls]
+Home = "https://github.com/velkouby/voxclip"
+"Issue Tracker" = "https://github.com/velkouby/voxclip/issues"
+"Author Contact" = "https://github.com/velkouby"
 
 [project.scripts]
 voxclip = "vox_voice_paste.main:main"

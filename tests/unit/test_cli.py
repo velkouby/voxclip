@@ -5,7 +5,12 @@ import sys
 
 from vox_voice_paste.audio import AudioInputDevice
 from vox_voice_paste.cli import build_parser, main
-from vox_voice_paste.security import OPENAI_API_KEY_SECRET, InMemorySecretService
+from vox_voice_paste.security import (
+    OPENAI_API_KEY_SECRET,
+    SONIOX_API_KEY_SECRET,
+    InMemorySecretService,
+    KeyValidationResult,
+)
 from vox_voice_paste.ui.onboarding_window import RECOMMENDED_SHORTCUT, SHORTCUT_COMMAND
 
 
@@ -18,7 +23,9 @@ def test_build_parser_contains_expected_commands() -> None:
     assert "--remove-ubuntu-shortcut" in help_text
     assert "--list-audio-devices" in help_text
     assert "--diagnose" in help_text
+    assert "--show-error-log" in help_text
     assert "--check-openai-key" in help_text
+    assert "--check-soniox-key" in help_text
 
 
 def test_set_ubuntu_shortcut_default_binding_runs_for_default_command(monkeypatch) -> None:
@@ -107,6 +114,70 @@ def test_check_openai_key_does_not_print_secret(capsys) -> None:
     assert exit_code == 0
     assert "present" in captured.out
     assert "sk-test-secret" not in captured.out
+
+
+def test_show_error_log_prints_path_when_missing(monkeypatch, tmp_path, capsys) -> None:
+    log_path = tmp_path / "errors.log"
+    monkeypatch.setattr("vox_voice_paste.cli.default_error_log_path", lambda: log_path)
+
+    exit_code = main(["--show-error-log"], secret_service=InMemorySecretService())
+
+    captured = capsys.readouterr()
+    assert exit_code == 0
+    assert str(log_path) in captured.out
+    assert "No error log found" in captured.out
+
+
+def test_show_error_log_prints_recent_entries(monkeypatch, tmp_path, capsys) -> None:
+    log_path = tmp_path / "errors.log"
+    log_path.write_text("first\nsecond\n", encoding="utf-8")
+    monkeypatch.setattr("vox_voice_paste.cli.default_error_log_path", lambda: log_path)
+
+    exit_code = main(["--show-error-log"], secret_service=InMemorySecretService())
+
+    captured = capsys.readouterr()
+    assert exit_code == 0
+    assert str(log_path) in captured.out
+    assert "Last 50 entries" in captured.out
+    assert "second" in captured.out
+
+
+def test_check_soniox_key_does_not_print_secret(capsys) -> None:
+    secrets = InMemorySecretService({SONIOX_API_KEY_SECRET: "soniox-test-secret"})
+
+    exit_code = main(["--check-soniox-key"], secret_service=secrets)
+
+    captured = capsys.readouterr()
+    assert exit_code == 0
+    assert "present" in captured.out
+    assert "soniox-test-secret" not in captured.out
+
+
+def test_set_soniox_key_validates_before_storing(monkeypatch, capsys) -> None:
+    secrets = InMemorySecretService()
+    monkeypatch.setattr("getpass.getpass", lambda prompt: "soniox-test-secret")
+    monkeypatch.setattr(
+        "vox_voice_paste.cli.SonioxHTTPKeyValidator.validate",
+        lambda self, value: KeyValidationResult(True, "ok"),
+    )
+
+    exit_code = main(["--set-soniox-key"], secret_service=secrets)
+
+    captured = capsys.readouterr()
+    assert exit_code == 0
+    assert secrets.get_secret(SONIOX_API_KEY_SECRET) == "soniox-test-secret"
+    assert "stored" in captured.out
+
+
+def test_delete_soniox_key(capsys) -> None:
+    secrets = InMemorySecretService({SONIOX_API_KEY_SECRET: "soniox-test-secret"})
+
+    exit_code = main(["--delete-soniox-key"], secret_service=secrets)
+
+    captured = capsys.readouterr()
+    assert exit_code == 0
+    assert secrets.get_secret(SONIOX_API_KEY_SECRET) is None
+    assert "deleted" in captured.out
 
 
 def test_list_audio_devices_prints_devices(monkeypatch, capsys) -> None:

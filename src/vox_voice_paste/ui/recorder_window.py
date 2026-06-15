@@ -7,8 +7,9 @@ import asyncio
 import contextlib
 import logging
 import threading
-from collections.abc import AsyncIterator, Callable
+from collections.abc import AsyncIterator, Callable, Mapping
 from enum import StrEnum
+from typing import Any
 
 from PySide6.QtCore import QObject, Qt, QTimer, Signal, Slot
 from PySide6.QtGui import QCloseEvent, QKeyEvent
@@ -32,6 +33,7 @@ from vox_voice_paste.desktop import (
     NotificationService,
     SystemClipboardService,
 )
+from vox_voice_paste.error_log import record_error
 from vox_voice_paste.transcription import (
     MockTranscriptionService,
     TranscriptBuffer,
@@ -182,6 +184,7 @@ class RecorderWindow(QDialog):
         auto_start: bool = False,
         close_on_success: bool = False,
         force_process_exit_on_success: bool = False,
+        error_context: Mapping[str, Any] | None = None,
         parent: QWidget | None = None,
     ) -> None:
         super().__init__(parent)
@@ -193,6 +196,7 @@ class RecorderWindow(QDialog):
         self._notifications = notification_service or DesktopNotificationService()
         self._close_on_success = close_on_success
         self._force_process_exit_on_success = force_process_exit_on_success
+        self._error_context = dict(error_context or {})
         self._buffer = TranscriptBuffer()
         self._state = RecorderState.IDLE
         self._level_active = False
@@ -306,7 +310,10 @@ class RecorderWindow(QDialog):
             return
 
         if not hasattr(self._service, "transcribe"):
-            self._handle_error("Transcription service is unavailable.")
+            self._handle_error(
+                "Transcription service is unavailable.",
+                context={"stage": "service_unavailable"},
+            )
             return
 
         self._runner = ThreadedTranscriptionRunner(
@@ -359,7 +366,13 @@ class RecorderWindow(QDialog):
         if self._state is RecorderState.CANCELLED:
             return
         if event.type is TranscriptionEventType.ERROR:
-            self._handle_error(event.error or "Transcription failed.")
+            self._handle_error(
+                event.error or "Transcription failed.",
+                context={
+                    "stage": "transcription",
+                    "transcription": event.error_context,
+                },
+            )
             return
 
         self._buffer.apply(event)
@@ -368,9 +381,15 @@ class RecorderWindow(QDialog):
             self._copy_final_text(self._buffer.final_text)
 
     @Slot(str)
-    def _handle_error(self, message: str) -> None:
+    def _handle_error(
+        self,
+        message: str,
+        *,
+        context: Mapping[str, Any] | None = None,
+    ) -> None:
         if self._state is RecorderState.CANCELLED:
             return
+        self._record_error(message, context=context)
         self._set_level_active(False)
         self.set_state(RecorderState.ERROR)
         self.status_label.setText(message)
@@ -383,14 +402,17 @@ class RecorderWindow(QDialog):
 
     def _copy_final_text(self, text: str) -> None:
         if not text.strip():
-            self._handle_error("Transcription returned empty text.")
+            self._handle_error(
+                "Transcription returned empty text.",
+                context={"stage": "copy_final_text"},
+            )
             return
 
         self.set_state(RecorderState.COPYING)
         try:
             self._clipboard.copy_text(text)
         except ClipboardError as exc:
-            self._handle_error(str(exc))
+            self._handle_error(str(exc), context={"stage": "clipboard"})
             return
 
         self._notifications.notify(
@@ -433,7 +455,10 @@ class RecorderWindow(QDialog):
             POST_STOP_DEADLINE_MS,
             self._state,
         )
-        self._handle_error("Transcription incomplete: no final text received.")
+        self._handle_error(
+            "Transcription incomplete: no final text received.",
+            context={"stage": "post_stop_deadline"},
+        )
 
     def _close_session(
         self,
@@ -476,6 +501,27 @@ class RecorderWindow(QDialog):
             QMessageBox.critical(self, "VoxClip", message)
         except Exception:
             _logger.exception("Failed to show transcription error popup.")
+
+    def _record_error(
+        self,
+        message: str,
+        *,
+        context: Mapping[str, Any] | None = None,
+    ) -> None:
+        merged_context: dict[str, Any] = {
+            **self._error_context,
+            "state": self._state.value,
+            "device_id": self._device_id,
+            "close_on_success": self._close_on_success,
+        }
+        if context:
+            merged_context.update(context)
+        record_error(
+            event="recorder_error",
+            component="ui.recorder_window",
+            message=message,
+            context=merged_context,
+        )
 
     @Slot()
     def _force_quit_application(self) -> None:

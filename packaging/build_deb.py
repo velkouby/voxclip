@@ -180,6 +180,7 @@ def _install_application_source(venv_dir: Path, version: str) -> None:
     if package_target.exists():
         shutil.rmtree(package_target)
     shutil.copytree(ROOT / "src/vox_voice_paste", package_target)
+    _relax_package_permissions(package_target)
 
     dist_info = site_packages / f"voxclip-{version}.dist-info"
     if dist_info.exists():
@@ -198,6 +199,25 @@ def _install_application_source(venv_dir: Path, version: str) -> None:
         "Tag: py3-none-any\n",
         encoding="utf-8",
     )
+
+
+def _relax_package_permissions(root: Path) -> None:
+    for child in root.rglob("*"):
+        mode = child.stat().st_mode
+        if child.is_dir():
+            child.chmod(
+                mode
+                | stat.S_IRUSR
+                | stat.S_IRGRP
+                | stat.S_IROTH
+                | stat.S_IXUSR
+                | stat.S_IXGRP
+                | stat.S_IXOTH
+            )
+        else:
+            child.chmod(
+                mode | stat.S_IRUSR | stat.S_IRGRP | stat.S_IROTH
+            )
 
 
 def _site_packages_dir(venv_dir: Path) -> Path:

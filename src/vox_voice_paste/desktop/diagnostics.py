@@ -13,8 +13,10 @@ from vox_voice_paste.audio import AudioDeviceError, list_input_devices
 from vox_voice_paste.config import ConfigError, default_config_path, load_config
 from vox_voice_paste.desktop.clipboard import clipboard_command
 from vox_voice_paste.desktop.environment import detect_desktop_environment
+from vox_voice_paste.error_log import default_error_log_path
 from vox_voice_paste.security import (
     OPENAI_API_KEY_SECRET,
+    SONIOX_API_KEY_SECRET,
     KeyringSecretService,
     SecretError,
     SecretService,
@@ -35,6 +37,21 @@ def build_diagnostic_lines(
         f"python: {platform.python_version()}",
         f"config_path: {resolved_config_path}",
     ]
+
+    error_log_path = default_error_log_path()
+    lines.append(f"error_log_path: {error_log_path}")
+    if error_log_path.exists():
+        try:
+            error_log_size = error_log_path.stat().st_size
+        except OSError:
+            lines.append("error_log_exists: yes")
+            lines.append("error_log_size_bytes: unavailable")
+        else:
+            lines.append("error_log_exists: yes")
+            lines.append(f"error_log_size_bytes: {error_log_size}")
+    else:
+        lines.append("error_log_exists: no")
+        lines.append("error_log_size_bytes: 0")
 
     desktop = detect_desktop_environment()
     lines.extend(
@@ -62,6 +79,13 @@ def build_diagnostic_lines(
         lines.append("openai_api_key: unavailable")
     else:
         lines.append(f"openai_api_key: {'present' if key_present else 'missing'}")
+
+    try:
+        key_present = secrets.get_secret(SONIOX_API_KEY_SECRET) is not None
+    except SecretError:
+        lines.append("soniox_api_key: unavailable")
+    else:
+        lines.append(f"soniox_api_key: {'present' if key_present else 'missing'}")
 
     try:
         input_devices = list_input_devices()
