@@ -30,6 +30,7 @@ class AudioChunk:
 class MicrophoneCaptureConfig:
     device_id: str | None = None
     sample_rate: int = TARGET_SAMPLE_RATE
+    target_sample_rate: int = TARGET_SAMPLE_RATE
     block_size: int = 1024
 
 
@@ -98,11 +99,16 @@ class MicrophoneCapture:
             self._error = AudioCaptureError(f"Microphone stream status: {status}")
             return
 
-        samples = resample_linear(indata, self._config.sample_rate, TARGET_SAMPLE_RATE)
+        samples = resample_linear(
+            indata,
+            self._config.sample_rate,
+            self._config.target_sample_rate,
+        )
         self._queue.put(
             AudioChunk(
                 pcm=float32_to_pcm16_bytes(samples),
                 rms=calculate_rms_level(samples),
+                sample_rate=self._config.target_sample_rate,
             )
         )
 

@@ -7,7 +7,11 @@ from collections.abc import AsyncIterator
 
 from websockets.exceptions import WebSocketException
 
-from vox_voice_paste.transcription import TranscriptionConfig, TranscriptionEventType
+from vox_voice_paste.transcription import (
+    OPENAI_SAMPLE_RATE,
+    TranscriptionConfig,
+    TranscriptionEventType,
+)
 from vox_voice_paste.transcription.openai_realtime import (
     OpenAIRealtimeTranscriptionService,
     build_session_update,
@@ -32,7 +36,7 @@ def test_build_session_update_uses_transcription_session_shape() -> None:
     assert payload["session"]["type"] == "transcription"
     assert payload["session"]["audio"]["input"]["format"] == {
         "type": "audio/pcm",
-        "rate": 16_000,
+        "rate": OPENAI_SAMPLE_RATE,
     }
     assert payload["session"]["audio"]["input"]["transcription"] == {
         "model": "gpt-realtime-whisper",

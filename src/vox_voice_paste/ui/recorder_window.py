@@ -24,7 +24,12 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
-from vox_voice_paste.audio import AudioCaptureError, AudioChunk, MicrophoneCapture
+from vox_voice_paste.audio import (
+    TARGET_SAMPLE_RATE,
+    AudioCaptureError,
+    AudioChunk,
+    MicrophoneCapture,
+)
 from vox_voice_paste.audio.capture import MicrophoneCaptureConfig
 from vox_voice_paste.desktop import (
     ClipboardError,
@@ -63,7 +68,7 @@ class RecorderState(StrEnum):
 
 
 AudioSourceFactory = Callable[
-    [str | None, threading.Event, threading.Event],
+    [str | None, int, threading.Event, threading.Event],
     AsyncIterator[AudioChunk | bytes],
 ]
 
@@ -80,11 +85,13 @@ class ThreadedTranscriptionRunner(QObject):
         service: TranscriptionService,
         audio_source_factory: AudioSourceFactory,
         device_id: str | None,
+        audio_sample_rate: int,
     ) -> None:
         super().__init__()
         self._service = service
         self._audio_source_factory = audio_source_factory
         self._device_id = device_id
+        self._audio_sample_rate = audio_sample_rate
         self._stop_requested = threading.Event()
         self._cancel_requested = threading.Event()
         self._loop_lock = threading.Lock()
@@ -148,6 +155,7 @@ class ThreadedTranscriptionRunner(QObject):
             return
         source = self._audio_source_factory(
             self._device_id,
+            self._audio_sample_rate,
             self._stop_requested,
             self._cancel_requested,
         )
@@ -179,6 +187,7 @@ class RecorderWindow(QDialog):
         transcription_service: TranscriptionService | None = None,
         audio_source_factory: AudioSourceFactory | None = None,
         device_id: str | None = None,
+        audio_sample_rate: int = TARGET_SAMPLE_RATE,
         clipboard_service: ClipboardService | None = None,
         notification_service: NotificationService | None = None,
         auto_start: bool = False,
@@ -192,6 +201,7 @@ class RecorderWindow(QDialog):
         self._service = transcription_service or MockTranscriptionService()
         self._audio_source_factory = audio_source_factory or microphone_audio_source
         self._device_id = device_id
+        self._audio_sample_rate = audio_sample_rate
         self._clipboard = clipboard_service or SystemClipboardService()
         self._notifications = notification_service or DesktopNotificationService()
         self._close_on_success = close_on_success
@@ -320,6 +330,7 @@ class RecorderWindow(QDialog):
             service=self._service,
             audio_source_factory=self._audio_source_factory,
             device_id=self._device_id,
+            audio_sample_rate=self._audio_sample_rate,
         )
         connection_type = Qt.ConnectionType.QueuedConnection
         self._runner.event_received.connect(
@@ -512,6 +523,7 @@ class RecorderWindow(QDialog):
             **self._error_context,
             "state": self._state.value,
             "device_id": self._device_id,
+            "audio_sample_rate": self._audio_sample_rate,
             "close_on_success": self._close_on_success,
         }
         if context:
@@ -621,10 +633,15 @@ def _primary_button_text(state: RecorderState) -> str:
 
 async def microphone_audio_source(
     device_id: str | None,
+    sample_rate: int,
     stop_requested: threading.Event,
     cancel_requested: threading.Event,
 ) -> AsyncIterator[AudioChunk]:
-    config = MicrophoneCaptureConfig(device_id=device_id)
+    config = MicrophoneCaptureConfig(
+        device_id=device_id,
+        sample_rate=sample_rate,
+        target_sample_rate=sample_rate,
+    )
     try:
         with MicrophoneCapture(config) as capture:
             while not stop_requested.is_set() and not cancel_requested.is_set():

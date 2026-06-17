@@ -35,6 +35,8 @@ from vox_voice_paste.security import (
     SonioxHTTPKeyValidator,
 )
 from vox_voice_paste.transcription import (
+    OPENAI_SAMPLE_RATE,
+    SONIOX_SAMPLE_RATE,
     MockTranscriptionService,
     OpenAIRealtimeTranscriptionService,
     SonioxRealtimeTranscriptionService,
@@ -56,6 +58,7 @@ def run_record_and_copy(
         with SessionLock():
             app = QApplication.instance() or QApplication(sys.argv[:1])
             config = load_config()
+            audio_sample_rate = OPENAI_SAMPLE_RATE
             if mock:
                 service = MockTranscriptionService(delay_seconds=0.05)
             else:
@@ -68,11 +71,13 @@ def run_record_and_copy(
                 if api_key is None:
                     return 1
                 service = _transcription_service(config, api_key=api_key)
+                audio_sample_rate = _effective_sample_rate(config)
             window = RecorderWindow(
                 transcription_service=service,
                 auto_start=True,
                 close_on_success=True,
                 force_process_exit_on_success=True,
+                audio_sample_rate=audio_sample_rate,
                 error_context=_recording_error_context(config, mock=mock),
             )
             window.show()
@@ -134,6 +139,7 @@ def _openai_transcription_service(config, *, api_key: str) -> OpenAIRealtimeTran
             model=normalize_transcription_model(config.transcription_model),
             language=config.transcription_language,
             delay=config.transcription_delay,
+            sample_rate=OPENAI_SAMPLE_RATE,
         )
     )
 
@@ -151,6 +157,7 @@ def _soniox_transcription_service(
             model=model,
             language=config.transcription_language,
             delay=config.transcription_delay,
+            sample_rate=SONIOX_SAMPLE_RATE,
             websocket_base_url=SONIOX_WEBSOCKET_BASE_URL,
         )
     )
@@ -174,6 +181,10 @@ def _effective_transcription_model(config) -> str:
     return normalize_transcription_model(config.transcription_model)
 
 
+def _effective_sample_rate(config) -> int:
+    return SONIOX_SAMPLE_RATE if config.transcription_provider == "soniox" else OPENAI_SAMPLE_RATE
+
+
 def _effective_soniox_model(model: str) -> str:
     return normalize_soniox_transcription_model(model)
 
@@ -187,6 +198,7 @@ def _recording_error_context(config, *, mock: bool) -> dict[str, object]:
             "transcription_model": "mock" if mock else _effective_transcription_model(config),
             "transcription_language": config.transcription_language,
             "transcription_delay": config.transcription_delay,
+            "sample_rate": None if mock else _effective_sample_rate(config),
             "configured_input_device_id": config.default_input_device_id,
             "ubuntu_shortcut": config.ubuntu_shortcut,
         },

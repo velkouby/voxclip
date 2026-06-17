@@ -10,8 +10,11 @@ from dataclasses import dataclass
 from enum import StrEnum
 from typing import Any, Protocol
 
-from vox_voice_paste.audio import TARGET_SAMPLE_RATE, AudioChunk
+from vox_voice_paste.audio import AudioChunk
 from vox_voice_paste.config import DEFAULT_TRANSCRIPTION_MODEL
+
+OPENAI_SAMPLE_RATE = 24_000
+SONIOX_SAMPLE_RATE = 16_000
 
 
 class TranscriptionEventType(StrEnum):
@@ -56,7 +59,7 @@ class TranscriptionConfig:
     model: str = DEFAULT_TRANSCRIPTION_MODEL
     language: str | None = None
     delay: str = "low"
-    sample_rate: int = TARGET_SAMPLE_RATE
+    sample_rate: int = OPENAI_SAMPLE_RATE
     connect_timeout_seconds: float = 10.0
     final_timeout_seconds: float = 20.0
     close_timeout_seconds: float = 1.0

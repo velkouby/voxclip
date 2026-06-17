@@ -4,6 +4,7 @@ from PySide6.QtWidgets import QDialog
 
 from vox_voice_paste.app import (
     _api_key_or_prompt,
+    _effective_sample_rate,
     _effective_soniox_model,
     _transcription_service,
 )
@@ -15,6 +16,8 @@ from vox_voice_paste.security import (
     StaticOpenAIKeyValidator,
 )
 from vox_voice_paste.transcription import (
+    OPENAI_SAMPLE_RATE,
+    SONIOX_SAMPLE_RATE,
     OpenAIRealtimeTranscriptionService,
     SonioxRealtimeTranscriptionService,
 )
@@ -119,7 +122,17 @@ def test_transcription_service_uses_provider() -> None:
 
     assert isinstance(openai_service, OpenAIRealtimeTranscriptionService)
     assert isinstance(soniox_service, SonioxRealtimeTranscriptionService)
+    assert openai_service._config.sample_rate == OPENAI_SAMPLE_RATE
+    assert soniox_service._config.sample_rate == SONIOX_SAMPLE_RATE
     assert soniox_service._config.model == SONIOX_REALTIME_TRANSCRIPTION_MODEL
+
+
+def test_effective_sample_rate_uses_provider_specific_rates() -> None:
+    assert _effective_sample_rate(AppConfig()) == OPENAI_SAMPLE_RATE
+    assert (
+        _effective_sample_rate(AppConfig(transcription_provider="soniox"))
+        == SONIOX_SAMPLE_RATE
+    )
 
 
 def test_effective_soniox_model_forces_realtime_v5() -> None:

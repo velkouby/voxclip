@@ -12,7 +12,11 @@ from vox_voice_paste.desktop import (
     InMemoryClipboardService,
     InMemoryNotificationService,
 )
-from vox_voice_paste.transcription import MockTranscriptionService, TranscriptionEvent
+from vox_voice_paste.transcription import (
+    SONIOX_SAMPLE_RATE,
+    MockTranscriptionService,
+    TranscriptionEvent,
+)
 from vox_voice_paste.ui import RecorderState, RecorderWindow
 from vox_voice_paste.ui.recorder_window import RECORD_SYMBOL
 
@@ -362,6 +366,37 @@ def test_recorder_window_real_service_path_uses_audio_source(qtbot) -> None:
     assert window._level_active is False
 
 
+def test_recorder_window_passes_audio_sample_rate_to_audio_source(qtbot) -> None:
+    captured: dict[str, int | str | None] = {}
+
+    async def sample_rate_audio_source(
+        device_id,
+        sample_rate,
+        stop_requested,
+        cancel_requested,
+    ):
+        del stop_requested, cancel_requested
+        captured["device_id"] = device_id
+        captured["sample_rate"] = sample_rate
+        yield AudioChunk(pcm=b"abc", rms=0.5, sample_rate=sample_rate)
+
+    window = RecorderWindow(
+        transcription_service=EchoTranscriptionService(),
+        audio_source_factory=sample_rate_audio_source,
+        device_id="7",
+        audio_sample_rate=SONIOX_SAMPLE_RATE,
+        clipboard_service=InMemoryClipboardService(),
+        notification_service=InMemoryNotificationService(),
+        auto_start=True,
+    )
+    qtbot.addWidget(window)
+    window.show()
+
+    qtbot.waitUntil(lambda: window.state is RecorderState.SUCCESS, timeout=2000)
+
+    assert captured == {"device_id": "7", "sample_rate": SONIOX_SAMPLE_RATE}
+
+
 class FailingClipboardService:
     def copy_text(self, text: str) -> None:
         raise ClipboardError("clipboard failed")
@@ -419,13 +454,13 @@ class LingeringTranscriptionService:
             raise
 
 
-async def fake_audio_source(device_id, stop_requested, cancel_requested):
-    del device_id, stop_requested, cancel_requested
+async def fake_audio_source(device_id, sample_rate, stop_requested, cancel_requested):
+    del device_id, sample_rate, stop_requested, cancel_requested
     yield AudioChunk(pcm=b"abc", rms=0.5)
 
 
-async def stop_controlled_audio_source(device_id, stop_requested, cancel_requested):
-    del device_id
+async def stop_controlled_audio_source(device_id, sample_rate, stop_requested, cancel_requested):
+    del device_id, sample_rate
     while not stop_requested.is_set() and not cancel_requested.is_set():
         yield AudioChunk(pcm=b"abc", rms=0.5)
         await asyncio.sleep(0.01)

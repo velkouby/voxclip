@@ -6,7 +6,7 @@
 import numpy as np
 from numpy.typing import NDArray
 
-TARGET_SAMPLE_RATE = 16_000
+TARGET_SAMPLE_RATE = 24_000
 
 
 class AudioConversionError(ValueError):

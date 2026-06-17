@@ -3,7 +3,11 @@ from __future__ import annotations
 import asyncio
 
 from vox_voice_paste.config import SONIOX_REALTIME_TRANSCRIPTION_MODEL
-from vox_voice_paste.transcription import TranscriptionConfig, TranscriptionEventType
+from vox_voice_paste.transcription import (
+    SONIOX_SAMPLE_RATE,
+    TranscriptionConfig,
+    TranscriptionEventType,
+)
 from vox_voice_paste.transcription.soniox_realtime import (
     SonioxEventParser,
     SonioxRealtimeTranscriptionService,
@@ -21,6 +25,7 @@ def test_build_soniox_config_uses_realtime_shape() -> None:
         model=SONIOX_REALTIME_TRANSCRIPTION_MODEL,
         language="fr",
         delay="high",
+        sample_rate=SONIOX_SAMPLE_RATE,
     )
 
     payload = build_soniox_config(config)
@@ -29,7 +34,7 @@ def test_build_soniox_config_uses_realtime_shape() -> None:
         "api_key": "soniox-test",
         "model": "stt-rt-v5",
         "audio_format": "pcm_s16le",
-        "sample_rate": 16_000,
+        "sample_rate": SONIOX_SAMPLE_RATE,
         "num_channels": 1,
         "enable_language_identification": True,
         "enable_endpoint_detection": True,

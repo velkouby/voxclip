@@ -1,6 +1,6 @@
 [project]
 name = "voxclip"
-version = "0.2.5"
+version = "0.3.0"
 description = "Ubuntu desktop voice dictation helper that copies transcriptions to the clipboard."
 authors = [{name = "Vincent Elkouby"}]
 readme = "README.md"

@@ -4,6 +4,8 @@
 # Contact: https://github.com/velkouby
 
 from .base import (
+    OPENAI_SAMPLE_RATE,
+    SONIOX_SAMPLE_RATE,
     TranscriptionConfig,
     TranscriptionEvent,
     TranscriptionEventType,
@@ -16,7 +18,9 @@ from .transcript_buffer import TranscriptBuffer
 
 __all__ = [
     "MockTranscriptionService",
+    "OPENAI_SAMPLE_RATE",
     "OpenAIRealtimeTranscriptionService",
+    "SONIOX_SAMPLE_RATE",
     "SonioxRealtimeTranscriptionService",
     "TranscriptionConfig",
     "TranscriptionEvent",
