@@ -11,16 +11,12 @@ from .base import (
 )
 from .mock import MockTranscriptionService
 from .openai_realtime import OpenAIRealtimeTranscriptionService
-from .soniox_realtime import (
-    SonioxAsyncTranscriptionService,
-    SonioxRealtimeTranscriptionService,
-)
+from .soniox_realtime import SonioxRealtimeTranscriptionService
 from .transcript_buffer import TranscriptBuffer
 
 __all__ = [
     "MockTranscriptionService",
     "OpenAIRealtimeTranscriptionService",
-    "SonioxAsyncTranscriptionService",
     "SonioxRealtimeTranscriptionService",
     "TranscriptionConfig",
     "TranscriptionEvent",

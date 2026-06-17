@@ -201,6 +201,7 @@ VoxClip uses two layers of configuration:
 - `--settings` (open settings window)
 - `--mock` (mock audio/transcription for development)
 - `--set-openai-key`, `--delete-openai-key`, `--check-openai-key`
+- `--set-soniox-key`, `--delete-soniox-key`, `--check-soniox-key`
 - `--set-ubuntu-shortcut [KEY_COMBO]` (default: `Ctrl+Alt+N`)
 - `--remove-ubuntu-shortcut`
 - `--ensure-ubuntu-shortcut` (reinstall the managed shortcut)
@@ -213,13 +214,16 @@ VoxClip uses two layers of configuration:
 You can edit `~/.config/voxclip/config.toml` manually if needed:
 
 ```toml
+transcription_provider = "openai"
 transcription_model = "gpt-realtime-whisper"
 transcription_language = "fr"
 transcription_delay = "low"
 ubuntu_shortcut = "Ctrl+Alt+N"
 ```
 
+- `transcription_provider`: `openai` or `soniox`.
 - `transcription_model`: OpenAI Realtime model used for dictation.
+  Soniox always uses its real-time V5 model, `stt-rt-v5`.
 - `transcription_language`: optional source language override (`en`, `fr`, etc.).
 - `transcription_delay`: delay/latency/accuracy trade-off.
   Valid values are `minimal`, `low`, `medium`, `high`, `xhigh`.

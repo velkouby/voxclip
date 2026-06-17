@@ -9,11 +9,10 @@ from pathlib import Path
 from PySide6.QtWidgets import QApplication, QDialog
 
 from vox_voice_paste.config import (
-    SONIOX_ASYNC_TRANSCRIPTION_MODEL,
-    SONIOX_REALTIME_TRANSCRIPTION_MODEL,
     SONIOX_WEBSOCKET_BASE_URL,
     TranscriptionProvider,
     load_config,
+    normalize_soniox_transcription_model,
     normalize_transcription_model,
 )
 from vox_voice_paste.desktop import (
@@ -38,7 +37,6 @@ from vox_voice_paste.security import (
 from vox_voice_paste.transcription import (
     MockTranscriptionService,
     OpenAIRealtimeTranscriptionService,
-    SonioxAsyncTranscriptionService,
     SonioxRealtimeTranscriptionService,
     TranscriptionConfig,
 )
@@ -123,11 +121,7 @@ def _transcription_service(
     config,
     *,
     api_key: str,
-) -> (
-    OpenAIRealtimeTranscriptionService
-    | SonioxRealtimeTranscriptionService
-    | SonioxAsyncTranscriptionService
-):
+) -> OpenAIRealtimeTranscriptionService | SonioxRealtimeTranscriptionService:
     if config.transcription_provider == "soniox":
         return _soniox_transcription_service(config, api_key=api_key)
     return _openai_transcription_service(config, api_key=api_key)
@@ -148,23 +142,13 @@ def _soniox_transcription_service(
     config,
     *,
     api_key: str,
-) -> SonioxRealtimeTranscriptionService | SonioxAsyncTranscriptionService:
+) -> SonioxRealtimeTranscriptionService:
     model = _effective_soniox_model(config.transcription_model)
-
-    if model.startswith("stt-async"):
-        return SonioxAsyncTranscriptionService(
-            TranscriptionConfig(
-                api_key=api_key,
-                model=model,
-                language=config.transcription_language,
-                delay=config.transcription_delay,
-            )
-        )
 
     return SonioxRealtimeTranscriptionService(
         TranscriptionConfig(
             api_key=api_key,
-            model=model or SONIOX_REALTIME_TRANSCRIPTION_MODEL,
+            model=model,
             language=config.transcription_language,
             delay=config.transcription_delay,
             websocket_base_url=SONIOX_WEBSOCKET_BASE_URL,
@@ -191,9 +175,7 @@ def _effective_transcription_model(config) -> str:
 
 
 def _effective_soniox_model(model: str) -> str:
-    if not model.startswith("stt-"):
-        return SONIOX_ASYNC_TRANSCRIPTION_MODEL
-    return model or SONIOX_REALTIME_TRANSCRIPTION_MODEL
+    return normalize_soniox_transcription_model(model)
 
 
 def _recording_error_context(config, *, mock: bool) -> dict[str, object]:

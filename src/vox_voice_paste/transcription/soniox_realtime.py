@@ -5,29 +5,20 @@
 
 import asyncio
 import json
-import tempfile
-import urllib.request
-import wave
 from collections.abc import AsyncIterable, AsyncIterator
-from pathlib import Path
 from typing import Any
-from urllib.error import HTTPError
 
 import websockets
 from websockets.exceptions import WebSocketException
 
 from vox_voice_paste.audio import AudioChunk
-from vox_voice_paste.config import (
-    SONIOX_ASYNC_TRANSCRIPTION_MODEL,
-    SONIOX_REALTIME_TRANSCRIPTION_MODEL,
-)
+from vox_voice_paste.config import normalize_soniox_transcription_model
 
 from .base import TranscriptionConfig, TranscriptionEvent, TranscriptionEventType
 from .openai_realtime import _safe_error_detail
 
 END_TOKEN = "<end>"
 SONIOX_ITEM_ID = "soniox"
-SONIOX_API_BASE_URL = "https://api.soniox.com/v1"
 
 
 class SonioxRealtimeTranscriptionService:
@@ -124,156 +115,10 @@ class SonioxRealtimeTranscriptionService:
                 await asyncio.gather(sender, return_exceptions=True)
 
 
-class SonioxAsyncTranscriptionService:
-    def __init__(
-        self,
-        config: TranscriptionConfig,
-        *,
-        polling_interval_seconds: float = 0.25,
-    ) -> None:
-        self._config = config
-        self._polling_interval_seconds = polling_interval_seconds
-
-    async def transcribe(
-        self,
-        audio_chunks: AsyncIterable[AudioChunk | bytes],
-    ) -> AsyncIterator[TranscriptionEvent]:
-        if not self._config.api_key:
-            yield TranscriptionEvent.error_event(
-                "Soniox API key is missing.",
-                error_context=safe_async_error_context(self._config, stage="api_key"),
-            )
-            return
-
-        try:
-            async for event in self._transcribe(audio_chunks):
-                yield event
-        except TimeoutError:
-            yield TranscriptionEvent.error_event(
-                "Timed out while waiting for final transcript.",
-                error_context=safe_async_error_context(
-                    self._config,
-                    stage="final_timeout",
-                ),
-            )
-        except HTTPError as exc:
-            yield TranscriptionEvent.error_event(
-                "Soniox async transcription request failed: "
-                f"{_parse_http_error(exc)}",
-                error_context=safe_async_error_context(
-                    self._config,
-                    stage="http",
-                    exception_type=exc.__class__.__name__,
-                ),
-            )
-        except OSError:
-            yield TranscriptionEvent.error_event(
-                "Network error while contacting Soniox.",
-                error_context=safe_async_error_context(self._config, stage="network"),
-            )
-        except Exception as exc:
-            yield TranscriptionEvent.error_event(
-                f"Soniox async transcription failed: {_safe_error_detail(exc)}",
-                error_context=safe_async_error_context(
-                    self._config,
-                    stage="unexpected",
-                    exception_type=exc.__class__.__name__,
-                ),
-            )
-
-    async def _transcribe(
-        self,
-        audio_chunks: AsyncIterable[AudioChunk | bytes],
-    ) -> AsyncIterator[TranscriptionEvent]:
-        raw_audio = await _collect_raw_audio(audio_chunks)
-        if not raw_audio:
-            return
-
-        with tempfile.TemporaryDirectory() as scratch_dir:
-            wav_path = await asyncio.to_thread(
-                _write_wav_file,
-                raw_audio,
-                self._config.sample_rate,
-                Path(scratch_dir),
-            )
-            file_id = await self._upload_file(wav_path)
-            transcription_id = await self._create_transcription(file_id)
-            transcript_text = await self._wait_for_transcript(transcription_id)
-
-        yield TranscriptionEvent.final(transcript_text, item_id=SONIOX_ITEM_ID)
-
-    async def _upload_file(self, wav_path: Path) -> str:
-        raw_body, headers = _build_multipart_form(wav_path)
-        response = await asyncio.to_thread(
-            _request_json,
-            api_key=self._config.api_key,
-            method="POST",
-            path="files",
-            timeout_seconds=self._config.connect_timeout_seconds,
-            raw_body=raw_body,
-            headers=headers,
-        )
-        return response["id"]
-
-    async def _create_transcription(self, file_id: str) -> str:
-        payload = {
-            "model": self._config.model,
-            "file_id": file_id,
-        }
-        if self._config.language:
-            payload["language_hints"] = [self._config.language]
-
-        response = await asyncio.to_thread(
-            _request_json,
-            api_key=self._config.api_key,
-            method="POST",
-            path="transcriptions",
-            timeout_seconds=self._config.connect_timeout_seconds,
-            payload=payload,
-        )
-        return response["id"]
-
-    async def _wait_for_transcript(self, transcription_id: str) -> str:
-        deadline = asyncio.get_running_loop().time() + self._config.final_timeout_seconds
-        while asyncio.get_running_loop().time() < deadline:
-            status = await self._get_transcription_status(transcription_id)
-            state = status.get("status")
-            if state == "completed":
-                transcript = await self._get_transcript(transcription_id)
-                return transcript.get("text", "")
-            if state == "error":
-                raise RuntimeError(
-                    status.get("error_message", "Soniox async transcription failed.")
-                )
-            if state not in {"queued", "processing"}:
-                raise RuntimeError(f"Unexpected transcription state: {state}")
-            await asyncio.sleep(self._polling_interval_seconds)
-
-        raise TimeoutError("Timed out while waiting for async transcription to complete.")
-
-    async def _get_transcription_status(self, transcription_id: str) -> dict[str, Any]:
-        return await asyncio.to_thread(
-            _request_json,
-            api_key=self._config.api_key,
-            method="GET",
-            path=f"transcriptions/{transcription_id}",
-            timeout_seconds=self._config.final_timeout_seconds,
-        )
-
-    async def _get_transcript(self, transcription_id: str) -> dict[str, Any]:
-        return await asyncio.to_thread(
-            _request_json,
-            api_key=self._config.api_key,
-            method="GET",
-            path=f"transcriptions/{transcription_id}/transcript",
-            timeout_seconds=self._config.final_timeout_seconds,
-        )
-
-
 def build_soniox_config(config: TranscriptionConfig) -> dict[str, Any]:
     payload: dict[str, Any] = {
         "api_key": config.api_key,
-        "model": config.model or SONIOX_REALTIME_TRANSCRIPTION_MODEL,
+        "model": normalize_soniox_transcription_model(config.model),
         "audio_format": "pcm_s16le",
         "sample_rate": config.sample_rate,
         "num_channels": 1,
@@ -292,16 +137,6 @@ def build_safe_soniox_config(config: TranscriptionConfig) -> dict[str, Any]:
     return payload
 
 
-def build_soniox_async_config(config: TranscriptionConfig) -> dict[str, Any]:
-    model = config.model or SONIOX_ASYNC_TRANSCRIPTION_MODEL
-    payload: dict[str, Any] = {
-        "model": model,
-    }
-    if config.language:
-        payload["language_hints"] = [config.language]
-    return payload
-
-
 def safe_realtime_error_context(
     config: TranscriptionConfig,
     *,
@@ -313,7 +148,7 @@ def safe_realtime_error_context(
         "transport": "websocket",
         "stage": stage,
         "endpoint": config.websocket_base_url,
-        "model": config.model or SONIOX_REALTIME_TRANSCRIPTION_MODEL,
+        "model": normalize_soniox_transcription_model(config.model),
         "language": config.language,
         "delay": config.delay,
         "sample_rate": config.sample_rate,
@@ -321,30 +156,6 @@ def safe_realtime_error_context(
         "final_timeout_seconds": config.final_timeout_seconds,
         "close_timeout_seconds": config.close_timeout_seconds,
         "request_config": build_safe_soniox_config(config),
-    }
-    if exception_type is not None:
-        context["exception_type"] = exception_type
-    return context
-
-
-def safe_async_error_context(
-    config: TranscriptionConfig,
-    *,
-    stage: str,
-    exception_type: str | None = None,
-) -> dict[str, Any]:
-    context: dict[str, Any] = {
-        "provider": "soniox",
-        "transport": "http",
-        "stage": stage,
-        "endpoint": SONIOX_API_BASE_URL,
-        "model": config.model or SONIOX_ASYNC_TRANSCRIPTION_MODEL,
-        "language": config.language,
-        "delay": config.delay,
-        "sample_rate": config.sample_rate,
-        "connect_timeout_seconds": config.connect_timeout_seconds,
-        "final_timeout_seconds": config.final_timeout_seconds,
-        "request_config": build_soniox_async_config(config),
     }
     if exception_type is not None:
         context["exception_type"] = exception_type
@@ -430,89 +241,3 @@ def _parse_error(raw_event: dict[str, Any]) -> str | None:
     if error_code and error_message:
         return f"{error_code}: {error_message}"
     return str(error_message or error_code)
-
-
-def _parse_http_error(exc: Exception) -> str:
-    if not isinstance(exc, HTTPError):
-        return _safe_error_detail(exc)
-
-    try:
-        raw_error = exc.read().decode("utf-8", errors="replace")
-        payload = json.loads(raw_error)
-        if isinstance(payload, dict):
-            message = payload.get("message")
-            if message:
-                return str(message)
-            return str(payload.get("error_type", str(exc)))
-        return str(payload)
-    except (json.JSONDecodeError, UnicodeDecodeError, TypeError, OSError):
-        return str(exc)
-
-
-async def _collect_raw_audio(audio_chunks: AsyncIterable[AudioChunk | bytes]) -> bytes:
-    chunks: list[bytes] = []
-    async for chunk in audio_chunks:
-        if isinstance(chunk, AudioChunk):
-            chunk = chunk.pcm
-        if chunk:
-            chunks.append(chunk)
-    return b"".join(chunks)
-
-
-def _write_wav_file(raw_audio: bytes, sample_rate: int, scratch_dir: Path) -> Path:
-    with tempfile.NamedTemporaryFile(suffix=".wav", delete=False, dir=scratch_dir) as wav_file:
-        with wave.open(wav_file, "wb") as handle:
-            handle.setnchannels(1)
-            handle.setsampwidth(2)
-            handle.setframerate(sample_rate)
-            handle.writeframes(raw_audio)
-        return Path(wav_file.name)
-
-
-def _build_multipart_form(
-    file_path: Path, *, field_name: str = "file"
-) -> tuple[bytes, dict[str, str]]:
-    boundary = "----voxclip-soniox"
-    payload = (
-        f'--{boundary}\r\n'
-        f'Content-Disposition: form-data; name="{field_name}"; filename="{file_path.name}"\r\n'
-        f"Content-Type: application/octet-stream\r\n\r\n"
-    ).encode()
-    payload += file_path.read_bytes()
-    payload += f"\r\n--{boundary}--\r\n".encode()
-    headers = {"Content-Type": f"multipart/form-data; boundary={boundary}"}
-    return payload, headers
-
-
-def _request_json(
-    *,
-    api_key: str,
-    method: str,
-    path: str,
-    timeout_seconds: float,
-    payload: dict[str, Any] | None = None,
-    raw_body: bytes | None = None,
-    headers: dict[str, str] | None = None,
-) -> dict[str, Any]:
-    request_headers = {"Authorization": f"Bearer {api_key}", "Accept": "application/json"}
-    if headers:
-        request_headers.update(headers)
-
-    request_body: bytes | None = None
-    if raw_body is not None:
-        request_body = raw_body
-    elif payload is not None:
-        request_body = json.dumps(payload).encode("utf-8")
-        request_headers["Content-Type"] = "application/json"
-
-    request = urllib.request.Request(
-        f"{SONIOX_API_BASE_URL}/{path}",
-        data=request_body,
-        headers=request_headers,
-        method=method,
-    )
-    with urllib.request.urlopen(request, timeout=timeout_seconds) as response:
-        raw = response.read().decode("utf-8")
-    if not raw:
-        return {}
-    return json.loads(raw)

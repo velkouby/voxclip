@@ -2,11 +2,12 @@ from __future__ import annotations
 
 from PySide6.QtWidgets import QDialog
 
-from vox_voice_paste.app import _api_key_or_prompt, _transcription_service
-from vox_voice_paste.config import (
-    SONIOX_ASYNC_TRANSCRIPTION_MODEL,
-    AppConfig,
+from vox_voice_paste.app import (
+    _api_key_or_prompt,
+    _effective_soniox_model,
+    _transcription_service,
 )
+from vox_voice_paste.config import SONIOX_REALTIME_TRANSCRIPTION_MODEL, AppConfig
 from vox_voice_paste.security import (
     OPENAI_API_KEY_SECRET,
     SONIOX_API_KEY_SECRET,
@@ -15,7 +16,7 @@ from vox_voice_paste.security import (
 )
 from vox_voice_paste.transcription import (
     OpenAIRealtimeTranscriptionService,
-    SonioxAsyncTranscriptionService,
+    SonioxRealtimeTranscriptionService,
 )
 
 
@@ -117,5 +118,13 @@ def test_transcription_service_uses_provider() -> None:
     )
 
     assert isinstance(openai_service, OpenAIRealtimeTranscriptionService)
-    assert isinstance(soniox_service, SonioxAsyncTranscriptionService)
-    assert soniox_service._config.model == SONIOX_ASYNC_TRANSCRIPTION_MODEL
+    assert isinstance(soniox_service, SonioxRealtimeTranscriptionService)
+    assert soniox_service._config.model == SONIOX_REALTIME_TRANSCRIPTION_MODEL
+
+
+def test_effective_soniox_model_forces_realtime_v5() -> None:
+    assert _effective_soniox_model("stt-rt-v5") == SONIOX_REALTIME_TRANSCRIPTION_MODEL
+    assert _effective_soniox_model("stt-rt-v4") == SONIOX_REALTIME_TRANSCRIPTION_MODEL
+    assert _effective_soniox_model("stt-async-v5") == SONIOX_REALTIME_TRANSCRIPTION_MODEL
+    assert _effective_soniox_model("gpt-realtime-whisper") == SONIOX_REALTIME_TRANSCRIPTION_MODEL
+    assert _effective_soniox_model("   ") == SONIOX_REALTIME_TRANSCRIPTION_MODEL

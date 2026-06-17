@@ -17,8 +17,7 @@ APP_ID = "voxclip"
 LEGACY_APP_IDS = ("vox-voice-paste",)
 CONFIG_FILENAME = "config.toml"
 REALTIME_TRANSCRIPTION_MODEL = "gpt-realtime-whisper"
-SONIOX_REALTIME_TRANSCRIPTION_MODEL = "stt-rt-v4"
-SONIOX_ASYNC_TRANSCRIPTION_MODEL = "stt-async-v5"
+SONIOX_REALTIME_TRANSCRIPTION_MODEL = "stt-rt-v5"
 SONIOX_WEBSOCKET_BASE_URL = "wss://stt-rt.soniox.com/transcribe-websocket"
 DEFAULT_TRANSCRIPTION_MODEL = REALTIME_TRANSCRIPTION_MODEL
 DEFAULT_TRANSCRIPTION_DELAY = "low"
@@ -72,6 +71,15 @@ def normalize_transcription_model(model: str | None) -> str:
     if normalized in NON_REALTIME_TRANSCRIPTION_MODELS:
         return REALTIME_TRANSCRIPTION_MODEL
     return normalized
+
+
+def normalize_soniox_transcription_model(model: str | None) -> str:
+    if not model:
+        return SONIOX_REALTIME_TRANSCRIPTION_MODEL
+    normalized = model.strip()
+    if normalized == SONIOX_REALTIME_TRANSCRIPTION_MODEL:
+        return normalized
+    return SONIOX_REALTIME_TRANSCRIPTION_MODEL
 
 
 def default_config_path() -> Path:

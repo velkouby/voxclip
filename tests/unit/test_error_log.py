@@ -36,7 +36,7 @@ def test_record_error_writes_jsonl_with_sanitized_context(tmp_path) -> None:
             "audio": b"abc",
             "request_config": {
                 "audio_format": "pcm_s16le",
-                "model": "stt-rt-v4",
+                "model": "stt-rt-v5",
             },
         },
         log_path=log_path,
