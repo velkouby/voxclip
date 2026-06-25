@@ -6,9 +6,14 @@ from vox_voice_paste.app import (
     _api_key_or_prompt,
     _effective_sample_rate,
     _effective_soniox_model,
+    _effective_transcription_model,
     _transcription_service,
 )
-from vox_voice_paste.config import SONIOX_REALTIME_TRANSCRIPTION_MODEL, AppConfig
+from vox_voice_paste.config import (
+    REALTIME_TRANSLATION_MODEL,
+    SONIOX_REALTIME_TRANSCRIPTION_MODEL,
+    AppConfig,
+)
 from vox_voice_paste.security import (
     OPENAI_API_KEY_SECRET,
     SONIOX_API_KEY_SECRET,
@@ -19,6 +24,7 @@ from vox_voice_paste.transcription import (
     OPENAI_SAMPLE_RATE,
     SONIOX_SAMPLE_RATE,
     OpenAIRealtimeTranscriptionService,
+    OpenAIRealtimeTranslationService,
     SonioxRealtimeTranscriptionService,
 )
 
@@ -127,11 +133,46 @@ def test_transcription_service_uses_provider() -> None:
     assert soniox_service._config.model == SONIOX_REALTIME_TRANSCRIPTION_MODEL
 
 
+def test_translation_service_uses_selected_provider() -> None:
+    openai_service = _transcription_service(
+        AppConfig(translation_target_language="de"),
+        api_key="sk-test",
+        mode="translation",
+    )
+    soniox_service = _transcription_service(
+        AppConfig(transcription_provider="soniox", translation_target_language="en"),
+        api_key="soniox-test",
+        mode="translation",
+    )
+
+    assert isinstance(openai_service, OpenAIRealtimeTranslationService)
+    assert openai_service._config.model == REALTIME_TRANSLATION_MODEL
+    assert openai_service._config.translation_target_language == "de"
+    assert openai_service._config.sample_rate == OPENAI_SAMPLE_RATE
+    assert isinstance(soniox_service, SonioxRealtimeTranscriptionService)
+    assert soniox_service._config.translation_target_language == "en"
+    assert soniox_service._config.sample_rate == SONIOX_SAMPLE_RATE
+
+
 def test_effective_sample_rate_uses_provider_specific_rates() -> None:
     assert _effective_sample_rate(AppConfig()) == OPENAI_SAMPLE_RATE
     assert (
         _effective_sample_rate(AppConfig(transcription_provider="soniox"))
         == SONIOX_SAMPLE_RATE
+    )
+
+
+def test_effective_transcription_model_uses_translation_model_for_openai_translation() -> None:
+    assert (
+        _effective_transcription_model(AppConfig(), mode="translation")
+        == REALTIME_TRANSLATION_MODEL
+    )
+    assert (
+        _effective_transcription_model(
+            AppConfig(transcription_provider="soniox"),
+            mode="translation",
+        )
+        == SONIOX_REALTIME_TRANSCRIPTION_MODEL
     )
 
 

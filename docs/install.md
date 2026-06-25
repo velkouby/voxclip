@@ -26,19 +26,21 @@ sudo apt install \
   wl-clipboard xclip xsel
 ```
 
-The installed shortcut command for Ubuntu custom keyboard shortcuts is:
+The installed shortcut commands for Ubuntu custom keyboard shortcuts are:
 
 ```bash
 /usr/bin/voxclip --record-and-copy
+/usr/bin/voxclip --record-and-translate
 ```
 
-The app also applies this GNOME shortcut automatically on startup and installs a
-user autostart entry so the shortcut is re-applied at every GNOME login.
+The app also applies these GNOME shortcuts automatically on startup and installs a
+user autostart entry so the shortcuts are re-applied at every GNOME login.
 
-You can also install it directly for GNOME with:
+You can also install them directly for GNOME with:
 
 ```bash
 voxclip --set-ubuntu-shortcut
+voxclip --set-ubuntu-translation-shortcut
 ```
 
 To clean the desktop integration (for removal/uninstall workflows), run:

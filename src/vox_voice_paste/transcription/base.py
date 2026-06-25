@@ -64,6 +64,7 @@ class TranscriptionConfig:
     final_timeout_seconds: float = 20.0
     close_timeout_seconds: float = 1.0
     websocket_base_url: str = "wss://api.openai.com/v1/realtime"
+    translation_target_language: str | None = None
 
 
 class TranscriptionService(Protocol):

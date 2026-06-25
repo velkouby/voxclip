@@ -20,9 +20,11 @@ from PySide6.QtWidgets import (
 from vox_voice_paste.config import (
     DEFAULT_TRANSCRIPTION_DELAY,
     DEFAULT_TRANSCRIPTION_MODEL,
+    DEFAULT_TRANSLATION_UBUNTU_SHORTCUT,
     EXPERT_TRANSCRIPTION_DELAY,
     default_config_path,
     load_config,
+    normalize_language_code,
     save_config,
 )
 from vox_voice_paste.desktop import (
@@ -31,6 +33,11 @@ from vox_voice_paste.desktop import (
     ShortcutInstallError,
     SystemClipboardService,
     set_ubuntu_shortcut,
+)
+from vox_voice_paste.desktop.shortcuts import (
+    DEFAULT_TRANSLATION_SHORTCUT_COMMAND,
+    TRANSLATION_MANAGED_SHORTCUT_PATH,
+    TRANSLATION_SHORTCUT_LABEL,
 )
 from vox_voice_paste.security import (
     OPENAI_API_KEY_SECRET,
@@ -45,6 +52,16 @@ from vox_voice_paste.security import (
 from .api_key_dialog import OpenAIKeyDialog
 from .onboarding_window import RECOMMENDED_SHORTCUT, SHORTCUT_COMMAND
 
+TRANSLATION_LANGUAGE_OPTIONS = [
+    ("English", "en"),
+    ("French", "fr"),
+    ("Spanish", "es"),
+    ("German", "de"),
+    ("Italian", "it"),
+    ("Portuguese", "pt"),
+    ("Dutch", "nl"),
+]
+
 
 class SettingsWindow(QDialog):
     def __init__(
@@ -57,6 +74,7 @@ class SettingsWindow(QDialog):
         parent: QWidget | None = None,
         clipboard_service: ClipboardService | None = None,
         startup_shortcut: str | None = None,
+        startup_translation_shortcut: str | None = None,
     ) -> None:
         super().__init__(parent)
         self._clipboard = clipboard_service or SystemClipboardService()
@@ -67,7 +85,11 @@ class SettingsWindow(QDialog):
         self._config = load_config(config_path)
         resolved_config_path = config_path or default_config_path()
         shortcut_value = startup_shortcut or self._config.ubuntu_shortcut
+        translation_shortcut_value = (
+            startup_translation_shortcut or self._config.translation_ubuntu_shortcut
+        )
         self._config.ubuntu_shortcut = shortcut_value
+        self._config.translation_ubuntu_shortcut = translation_shortcut_value
         self.setWindowTitle("VoxClip - Settings")
         self.setMinimumWidth(520)
 
@@ -96,6 +118,43 @@ class SettingsWindow(QDialog):
         self.install_shortcut_button = QPushButton("Install GNOME shortcut")
         self.install_shortcut_button.clicked.connect(self.apply_ubuntu_shortcut)
         self.shortcut_status = QLabel()
+
+        self.translation_shortcut_command = QLineEdit(DEFAULT_TRANSLATION_SHORTCUT_COMMAND)
+        self.translation_shortcut_command.setReadOnly(True)
+        self.copy_translation_shortcut_button = QPushButton(
+            "Copy translation shortcut command"
+        )
+        self.copy_translation_shortcut_button.clicked.connect(
+            self.copy_translation_shortcut_command
+        )
+        self.translation_shortcut_input = QLineEdit(translation_shortcut_value)
+        self.translation_shortcut_input.setPlaceholderText(
+            DEFAULT_TRANSLATION_UBUNTU_SHORTCUT
+        )
+        self.install_translation_shortcut_button = QPushButton(
+            "Install GNOME translation shortcut"
+        )
+        self.install_translation_shortcut_button.clicked.connect(
+            self.apply_translation_ubuntu_shortcut
+        )
+        self.translation_shortcut_status = QLabel()
+
+        self.translation_language_combo = QComboBox()
+        for label, language_code in TRANSLATION_LANGUAGE_OPTIONS:
+            self.translation_language_combo.addItem(f"{label} ({language_code})", language_code)
+        target_language = normalize_language_code(self._config.translation_target_language)
+        language_index = self.translation_language_combo.findData(target_language)
+        if target_language and language_index < 0:
+            self.translation_language_combo.addItem(
+                f"Custom ({target_language})",
+                target_language,
+            )
+            language_index = self.translation_language_combo.findData(target_language)
+        self.translation_language_combo.setCurrentIndex(max(language_index, 0))
+        self.translation_language_combo.currentIndexChanged.connect(
+            self._set_translation_target_language
+        )
+
         self.transcription_expert_checkbox = QCheckBox("Prioritize transcription accuracy")
         self.transcription_expert_checkbox.setChecked(
             self._config.transcription_delay == EXPERT_TRANSCRIPTION_DELAY
@@ -124,6 +183,16 @@ class SettingsWindow(QDialog):
         layout.addWidget(self.shortcut_command)
         layout.addWidget(self.copy_shortcut_button)
         layout.addWidget(self.shortcut_status)
+        layout.addWidget(QLabel(f"Translation command: {DEFAULT_TRANSLATION_SHORTCUT_COMMAND}"))
+        layout.addWidget(QLabel("Recommended translation shortcut: Ctrl+Alt+M"))
+        layout.addWidget(QLabel("Active GNOME translation shortcut:"))
+        layout.addWidget(self.translation_shortcut_input)
+        layout.addWidget(self.install_translation_shortcut_button)
+        layout.addWidget(self.translation_shortcut_command)
+        layout.addWidget(self.copy_translation_shortcut_button)
+        layout.addWidget(self.translation_shortcut_status)
+        layout.addWidget(QLabel("Translation target language:"))
+        layout.addWidget(self.translation_language_combo)
         layout.addWidget(QLabel("Transcription provider:"))
         layout.addWidget(self.transcription_provider_combo)
         layout.addWidget(self.configure_key_button)
@@ -163,6 +232,15 @@ class SettingsWindow(QDialog):
         self.shortcut_status.setText("Command copied.")
 
     @Slot()
+    def copy_translation_shortcut_command(self) -> None:
+        try:
+            self._clipboard.copy_text(DEFAULT_TRANSLATION_SHORTCUT_COMMAND)
+        except ClipboardError as exc:
+            self.translation_shortcut_status.setText(str(exc))
+            return
+        self.translation_shortcut_status.setText("Translation command copied.")
+
+    @Slot()
     def apply_ubuntu_shortcut(self) -> None:
         shortcut = self.shortcut_input.text().strip()
         if not shortcut:
@@ -176,6 +254,28 @@ class SettingsWindow(QDialog):
         self._config.ubuntu_shortcut = shortcut
         save_config(self._config, self._config_path)
         self.shortcut_status.setText(f"GNOME shortcut configured: {shortcut}")
+
+    @Slot()
+    def apply_translation_ubuntu_shortcut(self) -> None:
+        shortcut = self.translation_shortcut_input.text().strip()
+        if not shortcut:
+            self.translation_shortcut_status.setText("Shortcut must not be empty.")
+            return
+        try:
+            set_ubuntu_shortcut(
+                shortcut=shortcut,
+                command=DEFAULT_TRANSLATION_SHORTCUT_COMMAND,
+                label=TRANSLATION_SHORTCUT_LABEL,
+                managed_path=TRANSLATION_MANAGED_SHORTCUT_PATH,
+            )
+        except ShortcutInstallError as exc:
+            self.translation_shortcut_status.setText(str(exc))
+            return
+        self._config.translation_ubuntu_shortcut = shortcut
+        save_config(self._config, self._config_path)
+        self.translation_shortcut_status.setText(
+            f"GNOME translation shortcut configured: {shortcut}"
+        )
 
     @Slot()
     def _set_transcription_expert_mode(self, enabled: bool) -> None:
@@ -194,6 +294,14 @@ class SettingsWindow(QDialog):
         self._config.transcription_provider = provider
         save_config(self._config, self._config_path)
         self._sync_provider_controls()
+
+    @Slot(int)
+    def _set_translation_target_language(self, _index: int = -1) -> None:
+        language = normalize_language_code(self.translation_language_combo.currentData())
+        if language is None:
+            return
+        self._config.translation_target_language = language
+        save_config(self._config, self._config_path)
 
     def _sync_provider_controls(self) -> None:
         label = _provider_label(self._config.transcription_provider)

@@ -15,11 +15,14 @@ CUSTOM_KEY_SCHEMA_PREFIX = "org.gnome.settings-daemon.plugins.media-keys.custom-
 CUSTOM_KEY_BINDINGS_KEY = "custom-keybindings"
 CUSTOM_KEY_BASE_PATH = "/org/gnome/settings-daemon/plugins/media-keys/custom-keybindings/"
 SHORTCUT_LABEL = "VoxClip"
+TRANSLATION_SHORTCUT_LABEL = "VoxClip Translation"
 LEGACY_SHORTCUT_LABELS = {"Vox Voice Paste"}
 MANAGED_SHORTCUT_PATH = f"{CUSTOM_KEY_BASE_PATH}voxclip/"
+TRANSLATION_MANAGED_SHORTCUT_PATH = f"{CUSTOM_KEY_BASE_PATH}voxclip-translation/"
 LEGACY_MANAGED_SHORTCUT_PATHS = {f"{CUSTOM_KEY_BASE_PATH}vox-voice-paste/"}
 SHORTCUT_EXECUTABLE = "/usr/bin/voxclip"
 DEFAULT_SHORTCUT_COMMAND = f"{SHORTCUT_EXECUTABLE} --record-and-copy"
+DEFAULT_TRANSLATION_SHORTCUT_COMMAND = f"{SHORTCUT_EXECUTABLE} --record-and-translate"
 LEGACY_SHORTCUT_COMMANDS = {"/usr/bin/vox-voice-paste --record-and-copy"}
 AUTOSTART_SHORTCUT_NAME = "voxclip-shortcut.desktop"
 LEGACY_AUTOSTART_SHORTCUT_NAMES = {"vox-voice-paste-shortcut.desktop"}
@@ -94,6 +97,27 @@ def set_ubuntu_shortcut(
     return target_path
 
 
+def set_ubuntu_shortcuts(
+    *,
+    transcription_shortcut: str,
+    translation_shortcut: str,
+) -> list[str]:
+    return [
+        set_ubuntu_shortcut(
+            shortcut=transcription_shortcut,
+            command=DEFAULT_SHORTCUT_COMMAND,
+            label=SHORTCUT_LABEL,
+            managed_path=MANAGED_SHORTCUT_PATH,
+        ),
+        set_ubuntu_shortcut(
+            shortcut=translation_shortcut,
+            command=DEFAULT_TRANSLATION_SHORTCUT_COMMAND,
+            label=TRANSLATION_SHORTCUT_LABEL,
+            managed_path=TRANSLATION_MANAGED_SHORTCUT_PATH,
+        ),
+    ]
+
+
 def install_shortcut_autostart_entry() -> Path | None:
     """Create a user autostart entry so shortcut sync runs at each GNOME login."""
     if not _is_gnome_desktop():
@@ -137,15 +161,28 @@ def remove_ubuntu_shortcut(
     *,
     command: str = DEFAULT_SHORTCUT_COMMAND,
     managed_path: str = MANAGED_SHORTCUT_PATH,
+    label: str = SHORTCUT_LABEL,
+    legacy_commands: set[str] | None = None,
+    legacy_labels: set[str] | None = None,
+    legacy_paths: set[str] | None = None,
 ) -> list[str]:
     """Remove VoxClip bindings from custom-keybindings and keep list consistent."""
     if not _is_gnome_desktop():
         return []
 
     paths = _load_custom_binding_paths()
-    shortcut_commands = {command, *LEGACY_SHORTCUT_COMMANDS}
-    shortcut_labels = {SHORTCUT_LABEL, *LEGACY_SHORTCUT_LABELS}
-    shortcut_paths = {managed_path, *LEGACY_MANAGED_SHORTCUT_PATHS}
+    shortcut_commands = {
+        command,
+        *(LEGACY_SHORTCUT_COMMANDS if legacy_commands is None else legacy_commands),
+    }
+    shortcut_labels = {
+        label,
+        *(LEGACY_SHORTCUT_LABELS if legacy_labels is None else legacy_labels),
+    }
+    shortcut_paths = {
+        managed_path,
+        *(LEGACY_MANAGED_SHORTCUT_PATHS if legacy_paths is None else legacy_paths),
+    }
 
     target_paths = [
         path
@@ -169,6 +206,21 @@ def remove_ubuntu_shortcut(
         )
 
     return _dedupe_paths(target_paths)
+
+
+def remove_ubuntu_shortcuts() -> list[str]:
+    removed_paths = remove_ubuntu_shortcut()
+    removed_paths.extend(
+        remove_ubuntu_shortcut(
+            command=DEFAULT_TRANSLATION_SHORTCUT_COMMAND,
+            managed_path=TRANSLATION_MANAGED_SHORTCUT_PATH,
+            label=TRANSLATION_SHORTCUT_LABEL,
+            legacy_commands=set(),
+            legacy_labels=set(),
+            legacy_paths=set(),
+        )
+    )
+    return _dedupe_paths(removed_paths)
 
 
 def _ensure_gsettings_available() -> None:

@@ -5,6 +5,12 @@ import sys
 
 from vox_voice_paste.audio import AudioInputDevice
 from vox_voice_paste.cli import build_parser, main
+from vox_voice_paste.config import DEFAULT_TRANSLATION_UBUNTU_SHORTCUT
+from vox_voice_paste.desktop.shortcuts import (
+    DEFAULT_TRANSLATION_SHORTCUT_COMMAND,
+    TRANSLATION_MANAGED_SHORTCUT_PATH,
+    TRANSLATION_SHORTCUT_LABEL,
+)
 from vox_voice_paste.security import (
     OPENAI_API_KEY_SECRET,
     SONIOX_API_KEY_SECRET,
@@ -19,7 +25,9 @@ def test_build_parser_contains_expected_commands() -> None:
 
     assert "voxclip" in help_text
     assert "--record-and-copy" in help_text
+    assert "--record-and-translate" in help_text
     assert "--set-ubuntu-shortcut" in help_text
+    assert "--set-ubuntu-translation-shortcut" in help_text
     assert "--remove-ubuntu-shortcut" in help_text
     assert "--list-audio-devices" in help_text
     assert "--diagnose" in help_text
@@ -60,10 +68,36 @@ def test_set_ubuntu_shortcut_accepts_custom_binding(monkeypatch) -> None:
     assert recorded["command"] == SHORTCUT_COMMAND
 
 
+def test_set_ubuntu_translation_shortcut_uses_translation_command(monkeypatch) -> None:
+    recorded = {}
+
+    def fake_set_ubuntu_shortcut(
+        *,
+        shortcut: str,
+        command: str,
+        label: str,
+        managed_path: str,
+    ) -> str:
+        recorded["shortcut"] = shortcut
+        recorded["command"] = command
+        recorded["label"] = label
+        recorded["managed_path"] = managed_path
+        return "/org/gnome/settings-daemon/plugins/media-keys/custom-keybindings/custom1/"
+
+    monkeypatch.setattr("vox_voice_paste.desktop.set_ubuntu_shortcut", fake_set_ubuntu_shortcut)
+
+    assert main(["--set-ubuntu-translation-shortcut"]) == 0
+
+    assert recorded["shortcut"] == DEFAULT_TRANSLATION_UBUNTU_SHORTCUT
+    assert recorded["command"] == DEFAULT_TRANSLATION_SHORTCUT_COMMAND
+    assert recorded["label"] == TRANSLATION_SHORTCUT_LABEL
+    assert recorded["managed_path"] == TRANSLATION_MANAGED_SHORTCUT_PATH
+
+
 def test_remove_ubuntu_shortcut_runs_cleanup(monkeypatch) -> None:
     removed = {}
 
-    def fake_remove_ubuntu_shortcut() -> list[str]:
+    def fake_remove_ubuntu_shortcuts() -> list[str]:
         removed["binding"] = "removed"
         return ["/org/gnome/settings-daemon/plugins/media-keys/custom-keybindings/custom0/"]
 
@@ -71,8 +105,8 @@ def test_remove_ubuntu_shortcut_runs_cleanup(monkeypatch) -> None:
         removed["autostart"] = "removed"
 
     monkeypatch.setattr(
-        "vox_voice_paste.desktop.remove_ubuntu_shortcut",
-        fake_remove_ubuntu_shortcut,
+        "vox_voice_paste.desktop.remove_ubuntu_shortcuts",
+        fake_remove_ubuntu_shortcuts,
     )
     monkeypatch.setattr(
         "vox_voice_paste.desktop.remove_shortcut_autostart_entry",
@@ -215,6 +249,14 @@ def test_record_and_copy_real_runs_app(monkeypatch) -> None:
     monkeypatch.setattr(vox_voice_paste.app, "run_record_and_copy", lambda *, mock: 29)
 
     assert main(["--record-and-copy"]) == 29
+
+
+def test_record_and_translate_runs_app(monkeypatch) -> None:
+    import vox_voice_paste.app
+
+    monkeypatch.setattr(vox_voice_paste.app, "run_record_and_translate", lambda *, mock: 31)
+
+    assert main(["--record-and-translate"]) == 31
 
 
 def test_settings_runs_settings_window(monkeypatch) -> None:

@@ -43,6 +43,17 @@ def test_build_soniox_config_uses_realtime_shape() -> None:
     }
 
 
+def test_build_soniox_config_adds_one_way_translation() -> None:
+    payload = build_soniox_config(
+        TranscriptionConfig(api_key="soniox-test", translation_target_language="en")
+    )
+
+    assert payload["translation"] == {
+        "type": "one_way",
+        "target_language": "en",
+    }
+
+
 def test_build_soniox_config_normalizes_legacy_models_to_realtime_v5() -> None:
     for model in ("stt-rt-v4", "stt-async-v5", "gpt-realtime-whisper", "   "):
         payload = build_soniox_config(TranscriptionConfig(api_key="soniox-test", model=model))
@@ -116,6 +127,49 @@ def test_soniox_parser_emits_partial_final_and_ignores_end_token() -> None:
     assert len(final_events) == 1
     assert final_events[0].type is TranscriptionEventType.FINAL
     assert final_events[0].text == "Bonjour."
+
+
+def test_soniox_translation_parser_keeps_translation_tokens_only() -> None:
+    parser = SonioxEventParser(translation_only=True)
+
+    partial_events = parser.parse(
+        {
+            "tokens": [
+                {
+                    "text": "Bonjour",
+                    "is_final": False,
+                    "translation_status": "original",
+                },
+                {
+                    "text": "Hello",
+                    "is_final": False,
+                    "translation_status": "translation",
+                },
+            ]
+        }
+    )
+    final_events = parser.parse(
+        {
+            "tokens": [
+                {
+                    "text": "Bonjour.",
+                    "is_final": True,
+                    "translation_status": "original",
+                },
+                {
+                    "text": "Hello.",
+                    "is_final": True,
+                    "translation_status": "translation",
+                },
+            ],
+            "finished": True,
+        }
+    )
+
+    assert len(partial_events) == 1
+    assert partial_events[0].text == "Hello"
+    assert len(final_events) == 1
+    assert final_events[0].text == "Hello."
 
 
 def test_soniox_parser_converts_cumulative_partial_text_to_delta() -> None:

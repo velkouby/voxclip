@@ -5,10 +5,14 @@ import pytest
 from vox_voice_paste.config import (
     DEFAULT_TRANSCRIPTION_MODEL,
     DEFAULT_TRANSCRIPTION_PROVIDER,
+    DEFAULT_TRANSLATION_TARGET_LANGUAGE,
+    DEFAULT_TRANSLATION_UBUNTU_SHORTCUT,
+    DEFAULT_UBUNTU_SHORTCUT,
     NON_REALTIME_TRANSCRIPTION_MODELS,
     AppConfig,
     ConfigError,
     load_config,
+    normalize_language_code,
     normalize_transcription_model,
     save_config,
 )
@@ -20,6 +24,9 @@ def test_missing_config_returns_default(tmp_path) -> None:
     assert config == AppConfig()
     assert config.onboarding_completed is False
     assert config.transcription_provider == DEFAULT_TRANSCRIPTION_PROVIDER
+    assert config.ubuntu_shortcut == DEFAULT_UBUNTU_SHORTCUT
+    assert config.translation_ubuntu_shortcut == DEFAULT_TRANSLATION_UBUNTU_SHORTCUT
+    assert config.translation_target_language == DEFAULT_TRANSLATION_TARGET_LANGUAGE
 
 
 def test_save_and_load_config_without_secret_content(tmp_path) -> None:
@@ -44,6 +51,20 @@ def test_config_persists_soniox_provider(tmp_path) -> None:
     save_config(config, config_path)
 
     assert load_config(config_path).transcription_provider == "soniox"
+
+
+def test_config_persists_translation_settings(tmp_path) -> None:
+    config_path = tmp_path / "config.toml"
+    config = AppConfig(
+        translation_ubuntu_shortcut="Ctrl+Alt+M",
+        translation_target_language="DE",
+    )
+
+    save_config(config, config_path)
+    loaded = load_config(config_path)
+
+    assert loaded.translation_ubuntu_shortcut == "Ctrl+Alt+M"
+    assert loaded.translation_target_language == "de"
 
 
 def test_config_without_provider_keeps_openai_default(tmp_path) -> None:
@@ -73,6 +94,11 @@ def test_non_realtime_transcription_models_normalize_to_realtime_model(model: st
 
 def test_blank_transcription_model_normalizes_to_default() -> None:
     assert normalize_transcription_model("   ") == DEFAULT_TRANSCRIPTION_MODEL
+
+
+def test_language_code_normalizes_blank_to_none() -> None:
+    assert normalize_language_code(" FR ") == "fr"
+    assert normalize_language_code("   ") is None
 
 
 def test_invalid_config_raises_config_error(tmp_path) -> None:

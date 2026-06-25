@@ -135,31 +135,35 @@ before opening the recorder.
 
 ## Configure The Keyboard Shortcut
 
-The installed recorder command is:
+The installed recorder commands are:
 
 ```bash
 /usr/bin/voxclip --record-and-copy
+/usr/bin/voxclip --record-and-translate
 ```
 
-The recommended shortcut is:
+The recommended shortcuts are:
 
 ```text
-Ctrl+Alt+N
+Ctrl+Alt+N  transcription
+Ctrl+Alt+M  translation
 ```
 
 Install or update the managed GNOME shortcut:
 
 ```bash
 voxclip --set-ubuntu-shortcut
+voxclip --set-ubuntu-translation-shortcut
 ```
 
 Choose a different shortcut:
 
 ```bash
 voxclip --set-ubuntu-shortcut Ctrl+Alt+K
+voxclip --set-ubuntu-translation-shortcut Ctrl+Alt+M
 ```
 
-VoxClip also creates a user autostart entry so the managed GNOME shortcut is
+VoxClip also creates a user autostart entry so the managed GNOME shortcuts are
 re-applied when you log in.
 
 ## Usage
@@ -168,6 +172,7 @@ Start a dictation from the installed package:
 
 ```bash
 voxclip --record-and-copy
+voxclip --record-and-translate
 ```
 
 Open settings:
@@ -198,13 +203,15 @@ VoxClip uses two layers of configuration:
 ### CLI flags
 
 - `--record-and-copy` (open the recorder and start dictation)
+- `--record-and-translate` (open the recorder and copy the final translation)
 - `--settings` (open settings window)
 - `--mock` (mock audio/transcription for development)
 - `--set-openai-key`, `--delete-openai-key`, `--check-openai-key`
 - `--set-soniox-key`, `--delete-soniox-key`, `--check-soniox-key`
 - `--set-ubuntu-shortcut [KEY_COMBO]` (default: `Ctrl+Alt+N`)
+- `--set-ubuntu-translation-shortcut [KEY_COMBO]` (default: `Ctrl+Alt+M`)
 - `--remove-ubuntu-shortcut`
-- `--ensure-ubuntu-shortcut` (reinstall the managed shortcut)
+- `--ensure-ubuntu-shortcut` (reinstall the managed shortcuts)
 - `--list-audio-devices`
 - `--diagnose`
 - `--show-error-log`
@@ -219,6 +226,8 @@ transcription_model = "gpt-realtime-whisper"
 transcription_language = "fr"
 transcription_delay = "low"
 ubuntu_shortcut = "Ctrl+Alt+N"
+translation_ubuntu_shortcut = "Ctrl+Alt+M"
+translation_target_language = "en"
 ```
 
 - `transcription_provider`: `openai` or `soniox`.
@@ -228,6 +237,8 @@ ubuntu_shortcut = "Ctrl+Alt+N"
 - `transcription_delay`: delay/latency/accuracy trade-off.
   Valid values are `minimal`, `low`, `medium`, `high`, `xhigh`.
 - `ubuntu_shortcut`: GNOME shortcut that launches dictation.
+- `translation_ubuntu_shortcut`: GNOME shortcut that launches translation.
+- `translation_target_language`: output language code for translation (`en` by default).
 
 ## OpenAI Cost
 

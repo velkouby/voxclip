@@ -17,13 +17,17 @@ APP_ID = "voxclip"
 LEGACY_APP_IDS = ("vox-voice-paste",)
 CONFIG_FILENAME = "config.toml"
 REALTIME_TRANSCRIPTION_MODEL = "gpt-realtime-whisper"
+REALTIME_TRANSLATION_MODEL = "gpt-realtime-translate"
 SONIOX_REALTIME_TRANSCRIPTION_MODEL = "stt-rt-v5"
 SONIOX_WEBSOCKET_BASE_URL = "wss://stt-rt.soniox.com/transcribe-websocket"
+OPENAI_TRANSLATION_WEBSOCKET_BASE_URL = "wss://api.openai.com/v1/realtime/translations"
 DEFAULT_TRANSCRIPTION_MODEL = REALTIME_TRANSCRIPTION_MODEL
 DEFAULT_TRANSCRIPTION_DELAY = "low"
 EXPERT_TRANSCRIPTION_DELAY = "high"
 DEFAULT_UBUNTU_SHORTCUT = "Ctrl+Alt+N"
+DEFAULT_TRANSLATION_UBUNTU_SHORTCUT = "Ctrl+Alt+M"
 DEFAULT_TRANSCRIPTION_PROVIDER = "openai"
+DEFAULT_TRANSLATION_TARGET_LANGUAGE = "en"
 
 TranscriptionProvider = Literal["openai", "soniox"]
 
@@ -55,11 +59,19 @@ class AppConfig(BaseModel):
         pattern="^(minimal|low|medium|high|xhigh)$",
     )
     ubuntu_shortcut: str = DEFAULT_UBUNTU_SHORTCUT
+    translation_ubuntu_shortcut: str = DEFAULT_TRANSLATION_UBUNTU_SHORTCUT
+    translation_target_language: str = DEFAULT_TRANSLATION_TARGET_LANGUAGE
 
     @field_validator("transcription_model")
     @classmethod
     def normalize_realtime_transcription_model(cls, value: str) -> str:
         return normalize_transcription_model(value)
+
+    @field_validator("translation_target_language")
+    @classmethod
+    def normalize_translation_target_language(cls, value: str) -> str:
+        normalized = normalize_language_code(value)
+        return normalized or DEFAULT_TRANSLATION_TARGET_LANGUAGE
 
 
 def normalize_transcription_model(model: str | None) -> str:
@@ -80,6 +92,13 @@ def normalize_soniox_transcription_model(model: str | None) -> str:
     if normalized == SONIOX_REALTIME_TRANSCRIPTION_MODEL:
         return normalized
     return SONIOX_REALTIME_TRANSCRIPTION_MODEL
+
+
+def normalize_language_code(language: str | None) -> str | None:
+    if language is None:
+        return None
+    normalized = language.strip().lower()
+    return normalized or None
 
 
 def default_config_path() -> Path:

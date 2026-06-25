@@ -11,9 +11,14 @@ from typing import Any
 
 from . import __version__
 from .audio import AudioDeviceError, format_input_devices, list_input_devices
-from .config import DEFAULT_UBUNTU_SHORTCUT, load_config
+from .config import DEFAULT_TRANSLATION_UBUNTU_SHORTCUT, DEFAULT_UBUNTU_SHORTCUT, load_config
 from .desktop.diagnostics import build_diagnostic_lines, format_diagnostic_report
-from .desktop.shortcuts import DEFAULT_SHORTCUT_COMMAND
+from .desktop.shortcuts import (
+    DEFAULT_SHORTCUT_COMMAND,
+    DEFAULT_TRANSLATION_SHORTCUT_COMMAND,
+    TRANSLATION_MANAGED_SHORTCUT_PATH,
+    TRANSLATION_SHORTCUT_LABEL,
+)
 from .error_log import default_error_log_path, read_error_log_tail, record_error
 from .logging_config import configure_logging
 from .security import (
@@ -59,6 +64,11 @@ def build_parser() -> argparse.ArgumentParser:
         help="open the recorder, start dictation, and copy the final transcript",
     )
     parser.add_argument(
+        "--record-and-translate",
+        action="store_true",
+        help="open the recorder, start dictation, and copy the final translation",
+    )
+    parser.add_argument(
         "--mock",
         action="store_true",
         help="use mock audio and transcription services for development",
@@ -76,6 +86,16 @@ def build_parser() -> argparse.ArgumentParser:
         help=(
             "create/update the GNOME shortcut for the recorder command "
             f"(default: {DEFAULT_UBUNTU_SHORTCUT})"
+        ),
+    )
+    parser.add_argument(
+        "--set-ubuntu-translation-shortcut",
+        nargs="?",
+        const=DEFAULT_TRANSLATION_UBUNTU_SHORTCUT,
+        metavar="KEY_COMBO",
+        help=(
+            "create/update the GNOME shortcut for the translation command "
+            f"(default: {DEFAULT_TRANSLATION_UBUNTU_SHORTCUT})"
         ),
     )
     parser.add_argument(
@@ -151,6 +171,11 @@ def main(
 
         return run_record_and_copy(mock=args.mock)
 
+    if args.record_and_translate:
+        from .app import run_record_and_translate
+
+        return run_record_and_translate(mock=args.mock)
+
     if args.settings:
         from .app import run_settings
 
@@ -177,28 +202,54 @@ def main(
         )
         return 0
 
+    if args.set_ubuntu_translation_shortcut is not None:
+        from .desktop import ShortcutInstallError, set_ubuntu_shortcut
+
+        try:
+            set_ubuntu_shortcut(
+                shortcut=args.set_ubuntu_translation_shortcut,
+                command=DEFAULT_TRANSLATION_SHORTCUT_COMMAND,
+                label=TRANSLATION_SHORTCUT_LABEL,
+                managed_path=TRANSLATION_MANAGED_SHORTCUT_PATH,
+            )
+        except ShortcutInstallError as exc:
+            _record_cli_error(
+                "set_ubuntu_translation_shortcut_failed",
+                exc,
+                context={"shortcut": args.set_ubuntu_translation_shortcut},
+            )
+            parser.exit(1, f"voxclip: {exc}\n")
+        print(
+            f"Shortcut configured: {args.set_ubuntu_translation_shortcut} -> "
+            f"{DEFAULT_TRANSLATION_SHORTCUT_COMMAND}"
+        )
+        return 0
+
     if args.remove_ubuntu_shortcut:
         from .desktop import (
             ShortcutInstallError,
             remove_shortcut_autostart_entry,
-            remove_ubuntu_shortcut,
+            remove_ubuntu_shortcuts,
         )
 
         try:
-            remove_ubuntu_shortcut()
+            remove_ubuntu_shortcuts()
             remove_shortcut_autostart_entry()
         except ShortcutInstallError as exc:
             _record_cli_error("remove_ubuntu_shortcut_failed", exc)
             parser.exit(1, f"voxclip: {exc}\n")
-        print("GNOME shortcut binding and autostart entry removed.")
+        print("GNOME shortcut bindings and autostart entry removed.")
         return 0
 
     if args.ensure_ubuntu_shortcut:
-        from .desktop import ShortcutInstallError, set_ubuntu_shortcut
+        from .desktop import ShortcutInstallError, set_ubuntu_shortcuts
 
         config = load_config()
         try:
-            set_ubuntu_shortcut(shortcut=config.ubuntu_shortcut)
+            set_ubuntu_shortcuts(
+                transcription_shortcut=config.ubuntu_shortcut,
+                translation_shortcut=config.translation_ubuntu_shortcut,
+            )
         except ShortcutInstallError:
             return 0
         return 0

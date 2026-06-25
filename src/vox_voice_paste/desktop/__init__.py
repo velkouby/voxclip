@@ -22,7 +22,9 @@ from .shortcuts import (
     install_shortcut_autostart_entry,
     remove_shortcut_autostart_entry,
     remove_ubuntu_shortcut,
+    remove_ubuntu_shortcuts,
     set_ubuntu_shortcut,
+    set_ubuntu_shortcuts,
 )
 
 __all__ = [
@@ -40,8 +42,10 @@ __all__ = [
     "install_shortcut_autostart_entry",
     "remove_shortcut_autostart_entry",
     "remove_ubuntu_shortcut",
+    "remove_ubuntu_shortcuts",
     "SystemClipboardService",
     "default_session_lock_path",
     "detect_desktop_environment",
     "set_ubuntu_shortcut",
+    "set_ubuntu_shortcuts",
 ]

@@ -83,7 +83,9 @@ class SonioxRealtimeTranscriptionService:
         ) as websocket:
             await websocket.send(json.dumps(build_soniox_config(self._config)))
             sender = asyncio.create_task(send_audio(websocket, audio_chunks))
-            parser = SonioxEventParser()
+            parser = SonioxEventParser(
+                translation_only=self._config.translation_target_language is not None
+            )
             try:
                 while True:
                     raw_event = await asyncio.wait_for(
@@ -128,6 +130,11 @@ def build_soniox_config(config: TranscriptionConfig) -> dict[str, Any]:
     }
     if config.language:
         payload["language_hints"] = [config.language]
+    if config.translation_target_language:
+        payload["translation"] = {
+            "type": "one_way",
+            "target_language": config.translation_target_language,
+        }
     return payload
 
 
@@ -150,6 +157,7 @@ def safe_realtime_error_context(
         "endpoint": config.websocket_base_url,
         "model": normalize_soniox_transcription_model(config.model),
         "language": config.language,
+        "translation_target_language": config.translation_target_language,
         "delay": config.delay,
         "sample_rate": config.sample_rate,
         "connect_timeout_seconds": config.connect_timeout_seconds,
@@ -186,7 +194,8 @@ async def send_audio(
 
 
 class SonioxEventParser:
-    def __init__(self) -> None:
+    def __init__(self, *, translation_only: bool = False) -> None:
+        self._translation_only = translation_only
         self._final_parts: list[str] = []
         self._partial_text = ""
 
@@ -217,6 +226,8 @@ class SonioxEventParser:
         for token in raw_tokens:
             if not isinstance(token, dict):
                 continue
+            if not self._should_include_token(token):
+                continue
             text = str(token.get("text") or "")
             if not text or text == END_TOKEN:
                 continue
@@ -231,6 +242,12 @@ class SonioxEventParser:
             delta = partial_text
         self._partial_text = partial_text
         return delta
+
+    def _should_include_token(self, token: dict[str, Any]) -> bool:
+        translation_status = token.get("translation_status")
+        if self._translation_only:
+            return translation_status == "translation"
+        return translation_status != "translation"
 
 
 def _parse_error(raw_event: dict[str, Any]) -> str | None:
